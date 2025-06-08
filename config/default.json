@@ -1,0 +1,12 @@
+{
+    "mysql": {
+        "host": "localhost",
+        "user": "root",
+        "password": "your_password_here",
+        "database": "orca_db",
+        "port": 3306,
+        "connectionLimit": 10,
+        "waitForConnections": true,
+        "queueLimit": 0
+    }
+}
