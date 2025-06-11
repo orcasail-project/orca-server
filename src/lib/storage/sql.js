@@ -2,9 +2,9 @@ const mysql = require('mysql2/promise');
 const config = require('../../../config/default.json');
 
 // Function to connect to a database
-async function connectToDatabase(config) {
+async function connectToDatabase() {
     try {
-        const connection = await mysql.createConnection(config);
+        const connection = await mysql.createConnection(config.mysql);
         console.log('Connected to MySQL database');
         return connection;
     } catch (error) {
