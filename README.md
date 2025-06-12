@@ -1,145 +1,256 @@
-# Orca Practicum - Server Architecture & Setup
+Express Server Project
+A basic Node.js server project built on Express framework, providing an initial infrastructure for developing organized and professional APIs.
+📋 Table of Contents
 
-## Overview
-This project establishes a basic server infrastructure using Express.js, providing initial control over routing, configuration, and future connectivity to Front-end and Database interfaces.
+Installation and Setup
+Project Structure
+Routing Architecture
+Configuration Management
+Developing New APIs
+Future Extensions
 
-## Project Structure
+🚀 Installation and Setup
+Prerequisites
 
-```
-│── README.md              # Project documentation
+Node.js (version 14 and above)
+npm or yarn
+
+Installation Steps
+bash# Install dependencies
+npm install
+
+# Run the server in development mode
+npm start
+The server will run at: http://localhost:3000
+Health Check
+After running the server, verify the following:
+
+Navigate to http://localhost:3000/ - should return "hi"
+Test with Postman: GET request to http://localhost:3000/
+
+📁 Project Structure
+project/
 │
-│── .vscode/               # VS Code editor configurations (**not required at this stage**)
-│   └── launch.json        # Run and debug settings (**not required at this stage**)
+├── README.md              # Project documentation
+├── server.js              # Main entry point
+├── package.json           # Dependency management
+├── .gitignore            # Files not to be committed to git
 │
-├── node_modules/          # Third-party libraries (auto-generated, **do not commit to git**)
+├── config/               # Configuration files
+│   └── default.json      # Default settings
 │
-├── logs/                  # Log files directory (**not required yet**)
-│   ├── combined.log       # General application log (**not required yet**)
-│   └── error.log          # Error log (**not required yet**)
+├── src/                  # Source code
+│   └── lib/
+│       └── router.js     # Main router
 │
-├── src/                   # Main source code
-│   ├── lib/               # Core logic and modules
-│   │   ├── utils/             # Helper functions (**not required yet**)
-│   │   │   └── logger.js      # Log management (**not required yet**)
-│   │   ├── errorHandler.js    # General error handling (**not required yet**)
-│   │   ├── appError.js        # Unified error format function (**not required yet**)
-│   │   ├── response.js        # Unified response format function (**not required yet**)
-│   │   ├── router.js          # Main server routing ✅ (required in task)
-│   │   ├── user.js            # User-related routes (**not required yet**)
-│   │   ├── storage/           # Database connection files (**not yet**)
-│   │   │   └── mongosql.js    # MongoDB SQL database connection (**not yet**)
-│   │   │   └── schema.sql     # Database schema (**not yet**)
-│   │   ├── schemas/           # Database models/schemas (**not yet**)
-│
-├── config/                # Configuration files ✅ (required - port, dotenv)
-│   └── default.json       # Default configuration file
-│
-│── server.js              # Server entry point ✅ (required in task)
-│
-│── package.json           # Dependency management ✅
-│── package-lock.json      # Library version lock file (**auto-generated - don't touch**)
-│── jsconfig.json          # JavaScript configuration file (**not required yet**)
-│── .gitignore             # Files to exclude from git ✅
-```
+└── [Future - not yet implemented]
+    ├── logs/             # Log files
+    ├── src/lib/utils/    # Utility functions
+    ├── src/lib/storage/  # Database connections
+    └── src/lib/schemas/  # Database models
+🛣️ Routing Architecture
+What is Routing?
+Routing is the process by which the server decides how to respond to client requests to different paths (URLs).
+How does it work in our project?
+1. Main Server (server.js)
+javascriptconst express = require('express');
+const config = require('config');
+const router = require('./src/lib/router');
 
-## Required Files for This Stage ✅
+const app = express();
+const port = config.get("port") || 3000;
 
-The following files and directories are mandatory for the first stage:
+// Connect the main router
+app.use("/", router);
 
-- `README.md` - Basic project documentation
-- `src/lib/router.js` - Basic routing file with GET /hi route example
-- `config/default.json` - Configuration file (port, etc.)
-- `server.js` - Main file that connects router and port
-- `package.json` - npm settings file
-- `.gitignore` - Excludes node_modules, .env, etc.
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});
+2. Main Router (src/lib/router.js)
+javascriptconst express = require('express');
+const router = express.Router();
 
-## Installation
+// Basic route
+router.route("/").get((req, res) => {
+    res.send("hi");
+});
 
-1. Initialize a new project:
-```bash
-npm init -y
-```
+module.exports = router;
+Request Handling Process
 
-2. Install required dependencies:
-```bash
-npm install express cors dotenv config
-```
+Request Receipt: The server receives an HTTP request (GET, POST, PUT, DELETE)
+Routing: The server checks which path is requested and forwards to the appropriate router
+Processing: The router processes the request (business logic, database queries)
+Response: Returns a response to the client
 
-## Dependencies
+⚙️ Configuration Management
+Why use configuration?
 
-### Core Libraries
-- **express** - Fast, unopinionated, minimalist web framework for Node.js
-- **cors** - Enables Cross-Origin Resource Sharing (CORS)
-- **dotenv** - Loads environment variables from .env file
-- **config** - Organizes hierarchical configurations for app deployments
+Separation: Separates code from settings
+Environments: Different settings for development/production
+Security: Prevents exposure of sensitive data in code
 
-## Configuration
-
-The server uses a configuration file located at `config/default.json`:
-
-```json
-{
-  "port": 3000
+Configuration File Structure (config/default.json)
+json{
+    "port": 3000,
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "myapp_db"
+    },
+    "api": {
+        "version": "v1",
+        "baseUrl": "/api"
+    }
 }
-```
+Using Configuration
+javascriptconst config = require('config');
 
-## Usage
+// Get port
+const port = config.get("port");
 
-1. Start the server:
-```bash
-node server.js
-```
+// Get database settings
+const dbConfig = config.get("database");
 
-2. The server will run on the port specified in the configuration file (default: 3000)
 
-3. Test the basic route:
-   - Method: GET
-   - URL: `http://localhost:3000/`
-   - Expected response: "hi"
+Scenario: Developing API for User Management
+Step 1: Planning
 
-## API Endpoints
+What functionality is needed? (CRUD - Create, Read, Update, Delete)
+Which routes are required?
 
-### GET /
-- **Description**: Basic health check endpoint
-- **Response**: "hi"
-- **Status Code**: 200
+GET /api/users - get all users
+GET /api/users/:id - get specific user
+POST /api/users - create new user
+PUT /api/users/:id - update user
+DELETE /api/users/:id - delete user
 
-## Testing
 
-Use Postman or any HTTP client to test:
-1. Send a GET request to `http://localhost:3000/`
-2. Verify the response is "hi"
-3. Confirm the server reads the port from the config file
 
-## Acceptance Criteria ✅
+Step 2: Creating New Router
+javascript// src/lib/routes/users.js
+const express = require('express');
+const router = express.Router();
 
-- [x] Clean Node.js project setup
-- [x] Proper package.json and installed libraries
-- [x] Port and routes managed through config
-- [x] GET route at / returns "hi" and tested successfully in Postman
-- [x] Code separated into files: server.js, router.js, config/default.json
-- [x] README with hierarchy and explanation
-- [x] .gitignore file excluding node_modules, package-lock.json, etc.
+// Get all users
+router.get('/', (req, res) => {
+    // Logic to get users from database
+    res.json({ message: "All users" });
+});
 
-## Git Configuration
+// Get specific user
+router.get('/:id', (req, res) => {
+    const userId = req.params.id;
+    // Logic to get specific user
+    res.json({ message: `User ${userId}` });
+});
 
-The `.gitignore` file excludes:
-- `node_modules/`
-- `package-lock.json`
-- `.env`
-- `logs/`
-- `.vscode/` (if created)
+// Create new user
+router.post('/', (req, res) => {
+    // Logic to create new user
+    res.json({ message: "User created" });
+});
 
-## Future Development
+module.exports = router;
+Step 3: Connecting to Main Router
+javascript// src/lib/router.js
+const express = require('express');
+const usersRouter = require('./routes/users');
 
-This basic setup provides the foundation for:
-- Database integration (MongoDB/SQL)
-- User authentication and management
-- Error handling middleware
-- Logging system
-- API documentation
-- Testing framework integration
+const router = express.Router();
 
-## Contributing
+// Basic route
+router.route("/").get((req, res) => {
+    res.send("hi");
+});
 
-This project follows the Orca Practicum guidelines for server architecture and Express.js best practices.
+// Connect users router
+router.use("/api/users", usersRouter);
+
+module.exports = router;
+Organization by Modules
+src/lib/routes/
+├── users.js      # User management
+├── products.js   # Product management
+├── orders.js     # Order management
+└── auth.js       # Authentication
+Example of More Professional Structure
+javascript// src/lib/router.js
+const express = require('express');
+const usersRouter = require('./routes/users');
+const productsRouter = require('./routes/products');
+const authRouter = require('./routes/auth');
+
+const router = express.Router();
+
+// API version prefix
+const API_PREFIX = '/api/v1';
+
+// Connect all routers
+router.use(`${API_PREFIX}/users`, usersRouter);
+router.use(`${API_PREFIX}/products`, productsRouter);
+router.use(`${API_PREFIX}/auth`, authRouter);
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+module.exports = router;
+🔄 Recommended Workflow
+1. API Planning
+
+Define required endpoints
+Plan data structure
+Write documentation
+
+2. Create New Router
+
+Create new file in src/lib/routes/
+Define all required routes
+Add basic validation
+
+3. Connect to Server
+
+Import new router to router.js
+Set appropriate prefix
+Test with Postman
+
+4. Testing
+
+Test each endpoint
+Handle errors
+Validate data
+
+🚀 Future Extensions
+Database
+javascript// src/lib/storage/sql.js
+const mysql = require('mysql2');
+const config = require('config');
+
+const connection = mysql.createConnection(config.get('database'));
+Middleware
+javascript// src/lib/middleware/auth.js
+const authenticateToken = (req, res, next) => {
+    // Authentication logic
+    next();
+};
+Error Handling
+javascript// src/lib/errorHandler.js
+const errorHandler = (err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+};
+Logging
+javascript// src/lib/utils/logger.js
+const winston = require('winston');
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    transports: [
+        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'logs/combined.log' })
+    ]
+});
+
