@@ -16,5 +16,9 @@ async function startServer() {
         process.exit(1); // Exit the process due to lack of database connection
     }
 }
-
 startServer();
+
+
+
+
+
