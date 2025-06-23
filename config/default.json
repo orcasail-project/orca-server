@@ -1,3 +1,14 @@
 {
-  "port": 3000
+  "port": 3000,
+  "mysql": {
+    "host": "localhost",
+    "user": "DEVALOPER",
+    "password": "OrcaDb123",
+    "database": "orca_db",
+    "port": 3306,
+    "url": "mysql://DEVALOPER:OrcaDb123@localhost:3306/orca_db",
+    "connectionLimit": 10,
+    "waitForConnections": true,
+    "queueLimit": 0
+  }
 }
