@@ -1,26 +1,31 @@
 const express = require('express');
 const config = require('config');
-const router = require('./src/lib/router/router');
 const cors = require('cors');
-const connectToDatabase = require('./src/lib/storage/sql');
+const metadataRouter = require('./src/lib/router/metadataRouter');
+const { connectToDatabase } = require('./src/lib/storage/sql');
+
 
 const app = express();
-app.use(cors());
-app.use("/", router);
 
-const port = config.get("port") || 3000;
+
+
+app.use(cors()); 
+app.use(express.json()); 
+
+app.use('/metadata', metadataRouter); 
+
+
+const port = config.get("port") || 8080;
 
 async function startServer() {
     try {
         await connectToDatabase();
-        // If the connection is successful, start listening on the server
         app.listen(port, () => {
-            console.log(`Server running on port ${port}`);
+            console.log(`Server running on http://localhost:${port}`);
         });
     } catch (error) {
-        // In case of a connection failure, print an error message
-        console.error('Failed to connect to the database:', error.message);
-        process.exit(1); // Exit the process due to lack of database connection
+        console.error('Failed to connect to the database. Server is not running.', error.message);
+        process.exit(1);
     }
 }
 
