@@ -1,13 +1,16 @@
 const sailsService = require('../storage/sql');
+const dashboardConfig = require('../../../config/dashboardConfig.js');
 /**
  * פונקציית עזר לחישוב סייקלים של חצי שעה לדשבורד.
  * מתחילה מהסייקל הנוכחי או הקודם (מעוגל לחצי שעה הקרובה למטה).
  * @returns {{cycles: string[], startTime: Date, endTime: Date}}
  */
 function getNextTimeCycles() {
-    // שימוש בקבועים למניעת "מספרי קסם" ולתחזוקה קלה
-    const NUM_CYCLES = 5;
-    const CYCLE_DURATION_MINUTES = 30;
+    // קבועים מהקונפיגורציה של הדשבורד
+    // אם לא מוגדר, ברירת המחדל היא 5 סייקלים של 30 דקות כל אחד
+    // ניתן להגדיר את הקבועים בקובץ config/dashboardConfig.js
+    const NUM_CYCLES =dashboardConfig.NUM_CYCLES || 5;
+    const CYCLE_DURATION_MINUTES = dashboardConfig.CYCLE_DURATION_MINUTES || 30;
 
     const cycles = [];
     const now = new Date();
@@ -92,7 +95,9 @@ async function getSailsDashboard(req, res) {
         // 5. בנה את מבנה ה-JSON הסופי
         const sails_data = {};
 
-        // הקוד כאן נקי, ללא שורות מיותרות בהערה
+        // אתחול מבנה הנתונים עם שמות הסירות והסייקלים
+        // אם סירה לא פעילה, נשתמש בטקסט מהקונפיגורציה
+        // או בברירת מחדל "סירה לא פעילה"
         allBoats.forEach(boat => {
             if (boat.is_active) {
                 sails_data[boat.name] = {};
@@ -100,7 +105,7 @@ async function getSailsDashboard(req, res) {
                     sails_data[boat.name][cycleTime] = null;
                 });
             } else {
-                sails_data[boat.name] = "סירה לא פעילה";
+                sails_data[boat.name] = dashboardConfig.INACTIVE_BOAT_LABEL || "סירה לא פעילה";
             }
         });
 
@@ -124,7 +129,6 @@ async function getSailsDashboard(req, res) {
         console.error("Error in getSailsDashboardHandler:", error);
         res.status(500).json({ message: "Failed to fetch dashboard data", error: error.message });
     }
-    // אין יותר צורך ב-finally block כי הקונטרולר לא מנהל חיבורים.
 }
 
 module.exports = {

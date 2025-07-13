@@ -5,8 +5,7 @@ let pool;
 
 async function initializeDatabasePool() {
     try {
-        // שינוי: במקום createConnection, נשתמש ב-createPool
-        // הגדרת wait_for_connections מאפשרת לבקשות להמתין לחיבור פנוי במקום להיכשל מיד
+      
         pool = mysql.createPool({
             ...config.mysql,
             waitForConnections: true,
@@ -26,18 +25,15 @@ async function initializeDatabasePool() {
 }
 /**
  * מביא את כל הסירות (פעילות ולא פעילות) ממסד הנתונים.
- * שינוי: הפונקציה כבר לא מקבלת 'db' כפרמטר, היא משתמשת ב-Pool הפנימי.
  * @returns {Promise<Array>} רשימת כל הסירות.
  */
 async function getAllBoats() {
-    // שינוי: משתמשים ישירות ב-pool
     const [boats] = await pool.query('SELECT id, name, is_active FROM Boat ORDER BY name');
     return boats;
 }
 
 /**
  * פונקציה מרכזית: מביאה רשימה שטוחה של כל השיוטים וההזמנות שלהם בטווח זמנים נתון.
- * שינוי: הפונקציה כבר לא מקבלת 'db' כפרמטר, היא משתמשת ב-Pool הפנימי.
  * @param {Date} startTime - תאריך ושעת התחלה של הטווח.
  * @param {Date} endTime - תאריך ושעת סיום של הטווח.
  * @returns {Promise<Array>} רשימה שטוחה של נתונים.
@@ -74,12 +70,13 @@ async function getUpcomingSailsData(startTime, endTime) {
         ORDER BY b.name, planned_start_time, bk.id;
     `;
 
-    // שינוי: משתמשים ישירות ב-pool.execute
+    // שליפת הנתונים מהמסד עם פרמטרים של טווח זמן
+    // שימוש ב-pool.execute כדי למנוע SQL Injection
     const [results] = await pool.execute(query, [startTime, endTime]);
     return results;
 }
 
-// שינוי: מייצאים את פונקציית האתחול ואת פונקציות השליפה
+// ייצוא הפונקציות כדי שניתן יהיה להשתמש בהן בקבצים אחרים
 module.exports = {
     initializeDatabasePool,
     getAllBoats,
