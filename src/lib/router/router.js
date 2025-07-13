@@ -20,4 +20,11 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
   }
 });
 
+const sailsRouter = require('./sails');
+router.use('/api/sails', sailsRouter);
+
+router.get('/', (req, res) => res.send('hi'));
+
+
+
 module.exports = router;

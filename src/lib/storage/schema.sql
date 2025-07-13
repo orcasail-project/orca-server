@@ -5,6 +5,7 @@ CREATE TABLE Boat (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    gate_number VARCHAR(50),
     max_passengers INT NOT NULL,
     notes TEXT
 );
@@ -44,7 +45,7 @@ CREATE TABLE Sail (
     requires_orca_escort BOOLEAN DEFAULT FALSE,
     notes TEXT,
     FOREIGN KEY (population_type_id) REFERENCES PopulationType(id),
-    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(boat_id)
+    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id)
 );
 
 CREATE TABLE Customer (
@@ -93,5 +94,6 @@ CREATE TABLE User (
     notes TEXT,
     FOREIGN KEY (permission_id) REFERENCES Permission(id)
 );
+
 
 
