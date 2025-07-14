@@ -6,5 +6,5 @@ CREATE USER IF NOT EXISTS 'DEVALOPER'@'localhost' IDENTIFIED BY 'OrcaDb123';
 GRANT ALL PRIVILEGES ON orca_db.* TO 'DEVALOPER'@'localhost';
 FLUSH PRIVILEGES;
 
--- מעבר לעבודה תחת מסד הנתונים
+
 USE orca_db;

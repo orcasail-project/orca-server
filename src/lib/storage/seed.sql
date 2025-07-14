@@ -14,10 +14,10 @@ INSERT INTO PopulationType (name, notes) VALUES
 ('פרטי', 'לא ניתן לצרף'),
 ('קבוצה', NULL);
 
-INSERT INTO Permission (name) VALUES
-('מנהל'),
-('סקיפר'),
-('עובד משרד');
+INSERT INTO Permission (name, can_assign, can_change_status) VALUES
+('מנהל', TRUE, TRUE),         
+('סקיפר', TRUE, FALSE),      
+('עובד משרד', TRUE, TRUE);    
 
 INSERT INTO PaymentType (name) VALUES
 ('אשראי'),
@@ -31,33 +31,18 @@ INSERT INTO Boat (name, max_passengers, notes) VALUES
 ('קמיקזה', 14, 'אבובים, בננות רגוע, טורנדו בינוני'),
 ('לוי', 12, 'שייט משפחות בלבד');
 
--- הכנסת הקישורים בין סירות לפעילויות
-INSERT INTO BoatActivity (boat_id, activity_id) VALUES
--- טיל כחול (מבצע הכל)
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'אבובים')),
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'בננות')),
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'טורנדו אקסטרים')),
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'טורנדו רגוע')),
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'שייט משפחות')),
-((SELECT id FROM Boat WHERE name = 'טיל כחול'), (SELECT id FROM Activity WHERE name = 'סירה')),
--- טייפון (מבצע הכל)
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'אבובים')),
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'בננות')),
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'טורנדו אקסטרים')),
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'טורנדו רגוע')),
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'שייט משפחות')),
-((SELECT id FROM Boat WHERE name = 'טייפון'), (SELECT id FROM Activity WHERE name = 'סירה')),
--- טורפדו (מבצע הכל)
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'אבובים')),
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'בננות')),
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'טורנדו אקסטרים')),
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'טורנדו רגוע')),
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'שייט משפחות')),
-((SELECT id FROM Boat WHERE name = 'טורפדו'), (SELECT id FROM Activity WHERE name = 'סירה')),
--- קמיקזה
-((SELECT id FROM Boat WHERE name = 'קמיקזה'), (SELECT id FROM Activity WHERE name = 'אבובים')),
-((SELECT id FROM Boat WHERE name = 'קמיקזה'), (SELECT id FROM Activity WHERE name = 'טורנדו רגוע')),
--- לוי
-((SELECT id FROM Boat WHERE name = 'לוי'), (SELECT id FROM Activity WHERE name = 'שייט משפחות'));
 
+
+INSERT INTO BoatActivity (boat_id, activity_id)
+SELECT 
+    b.id, 
+    a.id
+FROM 
+    Boat b
+CROSS JOIN 
+    Activity a
+WHERE
+    (b.name IN ('טיל כחול', 'טייפון', 'טורפדו'))
+    OR (b.name = 'קמיקזה' AND a.name IN ('אבובים', 'טורנדו רגוע')) 
+    OR (b.name = 'לוי' AND a.name = 'שייט משפחות');
 SELECT 'Data seeding completed successfully' AS status;

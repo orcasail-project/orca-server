@@ -87,6 +87,8 @@ CREATE TABLE Booking (
 CREATE TABLE Permission (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    can_assign BOOLEAN NOT NULL,
+    can_change_status BOOLEAN NOT NULL,
     notes TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -98,3 +100,6 @@ CREATE TABLE `User` ( -- שימוש ב-Backticks למניעת התנגשות ע�
     notes TEXT,
     FOREIGN KEY (permission_id) REFERENCES Permission(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
