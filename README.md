@@ -32,22 +32,45 @@ Test with Postman: GET request to http://localhost:3000/
 project/
 │
 ├── README.md              # Project documentation
-├── server.js              # Main entry point
-├── package.json           # Dependency management
-├── .gitignore            # Files not to be committed to git
+├── server.js              # Main server entry point and initialization
+├── package.json           # Project dependencies and scripts
+├── .gitignore             # Files ignored by Git
 │
-├── config/               # Configuration files
-│   └── default.json      # Default settings
+├── config/                # Configuration files
+│   └── default.json       # Default settings (DB credentials, port, etc.)
 │
-├── src/                  # Source code
-│   └── lib/
-│       └── router.js     # Main router
+└── src/                   # Main source code directory
+    └── lib/
+        ├── controllers/   # Contains application business logic
+        │   └── dashboardController.js
+        │
+        ├── router/        # Defines API routes and endpoints
+        │   ├── dashboardRouter.js
+        │   └── router.js      # Main router (aggregates other route modules)
+        │
+        └── storage/       # Data Access Layer (DAL)
+            └── sql.js         # Manages database connection and queries
+
+[Future Architecture Extensions]
 │
-└── [Future - not yet implemented]
-    ├── logs/             # Log files
-    ├── src/lib/utils/    # Utility functions
-    ├── src/lib/storage/  # Database connections
-    └── src/lib/schemas/  # Database models
+├── logs/                  # For storing log files (e.g., error.log)
+└── src/
+    └── lib/
+        ├── middleware/    # Custom Express middleware (e.g., auth, validation)
+        ├── utils/         # Shared utility functions (e.g., logger)
+        └── schemas/       # Data validation schemas (e.g., for Joi or Zod)
+
+
+
+
+
+
+
+
+
+
+
+
 🛣️ Routing Architecture
 What is Routing?
 Routing is the process by which the server decides how to respond to client requests to different paths (URLs).
@@ -254,3 +277,136 @@ const logger = winston.createLogger({
     ]
 });
 
+
+# 🚤 API: Sails Dashboard
+
+This feature provides a **centralized endpoint** for building an operational dashboard displaying upcoming sails.
+The data is fetched and processed in real-time to provide an up-to-date overview of expected activities for each boat.
+
+---
+
+## 🔗 Endpoint
+
+GET /api/sails/dashboard
+
+
+### Description:
+
+This endpoint returns a structured JSON object containing sail data for every **active boat**,
+covering the **next 5 time intervals** (in 30-minute increments, starting from the upcoming half-hour).
+**Inactive boats** will be clearly marked.
+
+---
+
+## ✅ Success Response (200 OK)
+
+Response structure:
+
+```json
+{
+  "sails_data": {
+    "Dolphin": {
+      "14:00": {
+        "sail_id": 101,
+        "planned_start_time": "2023-10-27T11:00:00.000Z",
+        "actual_start_time": null,
+        "population_type_name": "Regular",
+        "sail_notes": "Standard morning sail.",
+        "require_orca_escort": false,
+        "is_private_group": false,
+        "total_people_on_sail": 5,
+        "total_people_on_activity": 2,
+        "bookings": [
+          {
+            "booking_id": 201,
+            "customer_id": 301,
+            "customer_name": "Israel Israeli",
+            "customer_phone_number": "050-1234567",
+            "num_people_sail": 5,
+            "num_people_activity": 2,
+            "is_phone_booking": true
+          }
+        ]
+      },
+      "14:30": null,
+      "15:00": null,
+      "15:30": null,
+      "16:00": null
+    },
+    "Whale": {
+      "14:00": null,
+      "14:30": null,
+      "15:00": null,
+      "15:30": null,
+      "16:00": null
+    },
+    "Shark (Inactive)": "Inactive boat"
+  }
+}
+```
+
+---
+
+## ❌ Error Response (500)
+
+If there’s a failure in communication with the database or any unexpected error,
+a status will be returned:
+
+```
+500 Internal Server Error
+```
+
+Along with an appropriate error message.
+
+---
+
+## 🧠 Architecture & Logic Flow
+
+### 1. Dynamic Time Range Calculation
+
+* Performed in `dashboardController.js`
+* Calculates a time range of **2.5 hours ahead**, starting from the current or previous half-hour.
+* This defines the **columns** of the dashboard (each 30-minute block = one column).
+
+---
+
+### 2. Efficient Data Fetching
+
+* Uses parallel fetching via `Promise.all`:
+
+  * List of all boats (for determining which **rows** to display).
+  * All sails and bookings in the time window via a **single SQL query** using `JOIN`.
+* This avoids multiple queries and ensures better performance.
+
+---
+
+### 3. Data Grouping & Processing
+
+* The "flat" data from the DB is processed:
+
+  * Each row is grouped into a **sail object**.
+  * All bookings are collected under their respective sail.
+
+---
+
+### 4. Final Response Structure Creation
+
+* A JSON object is initialized with all boat-time cells set to `null`.
+* Each processed sail is inserted into its appropriate location according to:
+
+  * Boat name
+  * Planned start time
+
+---
+
+## 📁 Key Files
+
+| File Path                                    | Description                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `src/lib/router/dashboardRouter.js`          | Defines the `/dashboard` route and links to the controller function            |
+| `src/lib/controllers/dashboardController.js` | Core logic: time calculation, data fetching, processing, and response creation |
+| `src/lib/storage/sql.js`                     | Handles DB access: complex SQL queries and connection management               |
+
+---
+
+Let me know if you’d like this also as a downloadable file or integrated into your frontend docs!

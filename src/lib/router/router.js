@@ -9,6 +9,9 @@ router.route("/").get((req, res) => {
 // הגדרת קבוע לנתיב /helloworld
 const HELLO_WORLD = "/helloworld";
 
+
+
+
 // ניתוב לדוגמה שמחזיר הודעה בפורמט JSON עם סטטוס 200
 router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
   try {
@@ -17,6 +20,7 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
     res.status(200).json({ message: "Hello IH world! " + name });
   } catch (err) {
     next(err);
+
   }
 });
 
