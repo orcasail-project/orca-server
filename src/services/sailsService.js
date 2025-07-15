@@ -8,7 +8,7 @@ const {
   updateSailStartQuery,
   updateSailEndQuery,
   updatedSailQuery
-} = require('../lib/schemas/sailsQueries');
+} = require('../lib/storage/sailsQueries');
 
 async function getNextSailsForToday() {
   const today = moment().format('YYYY-MM-DD');

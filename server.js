@@ -3,6 +3,7 @@ const config = require('config');
 const router = require('./src/lib/router/router');
 const cors = require('cors');
 const { connectToDatabase } = require('./src/lib/storage/sql');
+const createTables = require('./src/lib/storage/createTables');
 
 const app = express();
 app.use(cors());
