@@ -69,33 +69,7 @@ async function getAllPermissions() {
 async function getUpcomingSailsData(startTime, endTime) {
     const query = `
         SELECT
-          b.id AS boat_id,
-          b.name AS boat_name,
-          s.id AS sail_id,
-          TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
-          s.actual_start_time,
-          s.population_type_id,
-          pt.name AS population_type_name,
-          s.notes AS sail_notes,
-          s.requires_orca_escort,
-          s.is_private_group,
-          bk.id AS booking_id,
-          c.id AS customer_id,
-          c.name AS customer_name,
-          c.phone_number AS customer_phone_number,
-          bk.num_people_sail,
-          bk.num_people_activity,
-          bk.is_phone_booking
-        FROM Boat b
-        INNER JOIN BoatActivity ba ON ba.boat_id = b.id
-        INNER JOIN Sail s ON s.boat_activity_id = ba.id
-        LEFT JOIN Booking bk ON bk.sail_id = s.id
-        LEFT JOIN Customer c ON c.id = bk.customer_id
-        LEFT JOIN PopulationType pt ON pt.id = s.population_type_id
-        WHERE
-          TIMESTAMP(s.date, s.planned_start_time) >= ?
-          AND TIMESTAMP(s.date, s.planned_start_time) < ?
-        ORDER BY b.name, planned_start_time, bk.id;
+        
     `;
 
     const [results] = await pool.execute(query, [startTime, endTime]);
@@ -124,6 +98,83 @@ async function fetchMetadataFromDB() {
     }
 }
 
+
+
+/**
+ * מחפש שיוטים זמינים לפי פרמטרים נתונים.
+ * @param {object} searchParams - אובייקט המכיל את פרמטרי החיפוש.
+ * @returns {Promise<Array>} - מערך של אובייקטים המייצגים שיוטים זמינים.
+ */
+async function findAvailableSails(searchParams) {
+    try {
+      
+        const requestedTime = new Date(`${searchParams.date}T${searchParams.time}:00`);
+        const timeBefore = new Date(requestedTime.getTime() - 30 * 60000).toTimeString().slice(0, 8); // HH:MM:SS
+        const timeAfter = new Date(requestedTime.getTime() + 30 * 60000).toTimeString().slice(0, 8); // HH:MM:SS
+
+       
+        const potentialSailsQuery = `
+      SELECT 
+        
+    `;
+
+        const [potentialSails] = await pool.query(potentialSailsQuery, [
+            searchParams.date,
+            searchParams.population_type_id,
+            searchParams.activity_id,
+            timeBefore,
+            timeAfter
+        ]);
+
+        if (potentialSails.length === 0) {
+            return [];
+        }
+
+   
+        const availableSails = [];
+        for (const sail of potentialSails) {
+            const occupancyQuery = `
+            SELECT
+      `;
+            const [occupancyResult] = await pool.query(occupancyQuery, [sail.sail_id]);
+            const occupancy = occupancyResult[0];
+
+
+            const free_places_activity = sail.max_people_total - occupancy.current_activity_occupancy;
+            const free_places_sail = sail.max_passengers - occupancy.current_sail_occupancy;
+
+            if (free_places_activity >= searchParams.num_people_activity && free_places_sail >= searchParams.num_people_sail) {
+
+
+                const sailTime = sail.planned_start_time.slice(0, 5); // חיתוך ל-HH:MM
+
+                let matchType;
+                if (sailTime === searchParams.time) {
+                    matchType = 'full';
+                } else if (sailTime < searchParams.time) {
+                    matchType = 'down';
+                } else {
+                    matchType = 'up';
+                }
+
+                availableSails.push({
+                    sail_id: sail.sail_id,
+                    time: sailTime,
+                    match: matchType,
+                    num_people_activity: occupancy.current_activity_occupancy,
+                    num_people_sail: occupancy.current_sail_occupancy,
+                });
+            }
+        }
+
+        return availableSails;
+
+    } catch (error) {
+        console.error("Error in findAvailableSails:", error);
+        throw error;
+    }
+}
+
 module.exports = {
     initializeDatabasePool,
     getAllBoats,
@@ -132,4 +183,5 @@ module.exports = {
     getAllPopulationTypes,
     getAllPermissions,
     fetchMetadataFromDB,
+    findAvailableSails,
 };

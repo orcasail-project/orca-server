@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 
 const metadataRouter = require('./metadata.router.js');
+const bookingRouter = require('./booking.router.js');
 
 router.use('/metadata', metadataRouter);
+router.use('/bookings', bookingRouter);
 
 router.get('/', (req, res) => {
-    res.send('Main API Router');
+  res.send('Main API Router');
 });
 
 // הגדרת קבוע לנתיב /helloworld
