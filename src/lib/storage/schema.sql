@@ -1,6 +1,7 @@
 -- טבלת סירות
 CREATE TABLE Boat (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    boat_key VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     max_passengers INT NOT NULL,
