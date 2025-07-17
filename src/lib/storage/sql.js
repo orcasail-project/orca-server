@@ -99,81 +99,57 @@ async function fetchMetadataFromDB() {
 }
 
 
-
 /**
- * מחפש שיוטים זמינים לפי פרמטרים נתונים.
- * @param {object} searchParams - אובייקט המכיל את פרמטרי החיפוש.
- * @returns {Promise<Array>} - מערך של אובייקטים המייצגים שיוטים זמינים.
+ * מביא את כל השיוטים הפוטנציאליים בטווח זמן נתון, כולל חישוב התפוסה הנוכחית שלהם,
+ * והכל בשאילתה אחת יעילה.
+ * @param {object} searchParams - פרמטרי החיפוש.
+ * @returns {Promise<Array>} - מערך של שיוטים, כאשר לכל אחד יש נתוני קיבולת ותפוסה.
  */
-async function findAvailableSails(searchParams) {
+async function findSailsWithOccupancy(searchParams) {
     try {
-      
-        const requestedTime = new Date(`${searchParams.date}T${searchParams.time}:00`);
-        const timeBefore = new Date(requestedTime.getTime() - 30 * 60000).toTimeString().slice(0, 8); // HH:MM:SS
-        const timeAfter = new Date(requestedTime.getTime() + 30 * 60000).toTimeString().slice(0, 8); // HH:MM:SS
+        const { date, time, population_type_id, activity_id } = searchParams;
 
-       
-        const potentialSailsQuery = `
-      SELECT 
-        
-    `;
+        const timeBefore = new Date(`${date}T${time}:00`).getTime() - 30 * 60000;
+        const timeAfter = new Date(`${date}T${time}:00`).getTime() + 30 * 60000;
+        const timeBeforeStr = new Date(timeBefore).toTimeString().slice(0, 8);
+        const timeAfterStr = new Date(timeAfter).toTimeString().slice(0, 8);
 
-        const [potentialSails] = await pool.query(potentialSailsQuery, [
-            searchParams.date,
-            searchParams.population_type_id,
-            searchParams.activity_id,
-            timeBefore,
-            timeAfter
-        ]);
+        // השאילתה המאוחדת והחכמה
+        const query = `
+            SELECT 
+                s.id AS sail_id, 
+                s.planned_start_time,
+                b.max_passengers AS sail_capacity,
+                a.max_people_total AS activity_capacity,
+                a.name AS activity_name,
+                pt.name AS population_type_name,
+                COALESCE(SUM(bk.num_people_activity), 0) AS current_activity_occupancy,
+                COALESCE(SUM(bk.num_people_sail), 0) AS current_sail_occupancy
+            FROM Sail AS s
+            JOIN BoatActivity AS ba ON s.boat_activity_id = ba.id
+            JOIN Activity AS a ON ba.activity_id = a.id
+            JOIN Boat AS b ON ba.boat_id = b.id
+            JOIN PopulationType AS pt ON s.population_type_id = pt.id
+            LEFT JOIN Booking AS bk ON s.id = bk.sail_id
+            WHERE 
+                s.date = ? 
+              AND s.population_type_id = ? 
+              AND a.id = ? 
+              AND s.planned_start_time BETWEEN ? AND ?
+            GROUP BY s.id, s.planned_start_time, b.max_passengers, a.max_people_total, a.name, pt.name;
+        `;
 
-        if (potentialSails.length === 0) {
-            return [];
-        }
-
-   
-        const availableSails = [];
-        for (const sail of potentialSails) {
-            const occupancyQuery = `
-            SELECT
-      `;
-            const [occupancyResult] = await pool.query(occupancyQuery, [sail.sail_id]);
-            const occupancy = occupancyResult[0];
-
-
-            const free_places_activity = sail.max_people_total - occupancy.current_activity_occupancy;
-            const free_places_sail = sail.max_passengers - occupancy.current_sail_occupancy;
-
-            if (free_places_activity >= searchParams.num_people_activity && free_places_sail >= searchParams.num_people_sail) {
-
-
-                const sailTime = sail.planned_start_time.slice(0, 5); // חיתוך ל-HH:MM
-
-                let matchType;
-                if (sailTime === searchParams.time) {
-                    matchType = 'full';
-                } else if (sailTime < searchParams.time) {
-                    matchType = 'down';
-                } else {
-                    matchType = 'up';
-                }
-
-                availableSails.push({
-                    sail_id: sail.sail_id,
-                    time: sailTime,
-                    match: matchType,
-                    num_people_activity: occupancy.current_activity_occupancy,
-                    num_people_sail: occupancy.current_sail_occupancy,
-                });
-            }
-        }
-
-        return availableSails;
+        const [sails] = await pool.query(query, [date, population_type_id, activity_id, timeBeforeStr, timeAfterStr]);
+        return sails;
 
     } catch (error) {
-        console.error("Error in findAvailableSails:", error);
+        console.error("Error in findSailsWithOccupancy:", error);
         throw error;
     }
 }
+
+
+
 
 module.exports = {
     initializeDatabasePool,
@@ -183,5 +159,6 @@ module.exports = {
     getAllPopulationTypes,
     getAllPermissions,
     fetchMetadataFromDB,
-    findAvailableSails,
+    findSailsWithOccupancy
 };
+
