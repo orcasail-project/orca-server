@@ -22,14 +22,7 @@ async function initializeDatabasePool() {
     }
 }
 
-/**
- * מביא את כל הסירות (פעילות ולא פעילות) ממסד הנתונים.
- * @returns {Promise<Array>} רשימת כל הסירות.
- */
-async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name, is_active FROM Boat ORDER BY name');
-    return boats;
-}
+
 
 /**
  * Fetches all activities from the database.
@@ -61,6 +54,15 @@ async function getAllPermissions() {
 }
 
 /**
+ * מביא את כל הסירות (פעילות ולא פעילות) ממסד הנתונים.
+ * @returns {Promise<Array>} רשימת כל הסירות.
+ */
+async function getAllBoats() {
+    const [boats] = await pool.query('SELECT id, name,boat_key, is_active FROM Boat ORDER BY sort_order');
+    return boats;
+}
+
+/**
  * פונקציה מרכזית: מביאה רשימה שטוחה של כל השיוטים וההזמנות שלהם בטווח זמנים נתון.
  * @param {Date} startTime - תאריך ושעת התחלה של הטווח.
  * @param {Date} endTime - תאריך ושעת סיום של הטווח.
@@ -68,9 +70,10 @@ async function getAllPermissions() {
  */
 async function getUpcomingSailsData(startTime, endTime) {
     const query = `
-        SELECT
+        SELECT 
           b.id AS boat_id,
           b.name AS boat_name,
+           b.boat_key AS boat_key,
           s.id AS sail_id,
           TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
           s.actual_start_time,
@@ -92,15 +95,18 @@ async function getUpcomingSailsData(startTime, endTime) {
         LEFT JOIN Booking bk ON bk.sail_id = s.id
         LEFT JOIN Customer c ON c.id = bk.customer_id
         LEFT JOIN PopulationType pt ON pt.id = s.population_type_id
-        WHERE
+        WHERE 
           TIMESTAMP(s.date, s.planned_start_time) >= ?
           AND TIMESTAMP(s.date, s.planned_start_time) < ?
-        ORDER BY b.name, planned_start_time, bk.id;
+         ORDER BY b.sort_order, planned_start_time, bk.id;
     `;
 
+    // שליפת הנתונים מהמסד עם פרמטרים של טווח זמן
+    // שימוש ב-pool.execute כדי למנוע SQL Injection
     const [results] = await pool.execute(query, [startTime, endTime]);
     return results;
 }
+
 
 /**
  * Fetches all metadata required for application initialization.
