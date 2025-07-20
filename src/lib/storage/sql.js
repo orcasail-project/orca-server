@@ -130,6 +130,48 @@ async function fetchMetadataFromDB() {
     }
 }
 
+/**
+ * מחזיר משתמש לפי כתובת אימייל (לצורך התחברות / בדיקת כפילות).
+ * @param {string} email
+ * @returns {Promise<Object|null>}
+ */
+async function getUserByEmail(email) {
+    const query = 'SELECT * FROM users WHERE email = ?';
+    const [rows] = await pool.execute(query, [email]);
+    return rows.length > 0 ? rows[0] : null;
+}
+
+/**
+ * יוצר משתמש חדש במסד הנתונים.
+ * @param {Object} userData - { email, password, firstName, lastName, phoneNumber }
+ * @returns {Promise<Object>} המשתמש החדש עם ה־ID שנוצר
+ */
+async function createUser(userData) {
+    const query = `
+        INSERT INTO users (email, password, first_name, last_name, phone_number, role_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
+    `;
+
+    const values = [
+        userData.email,
+        userData.password,
+        userData.firstName,
+        userData.lastName,
+        userData.phoneNumber,
+        userData.roleId
+    ];
+
+    const [result] = await pool.execute(query, values);
+
+    return {
+        id: result.insertId,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phoneNumber: userData.phoneNumber
+    };
+}
+
 module.exports = {
     initializeDatabasePool,
     getAllBoats,
@@ -138,4 +180,6 @@ module.exports = {
     getAllPopulationTypes,
     getAllPermissions,
     fetchMetadataFromDB,
+    getUserByEmail,
+    createUser
 };

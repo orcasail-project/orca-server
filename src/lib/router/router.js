@@ -1,3 +1,5 @@
+const authRouter = require('./authRouter');
+
 const express = require('express');
 const router = express.Router();
 
@@ -22,5 +24,7 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
     next(err);
   }
 });
+
+router.use('/api/auth', authRouter);
 
 module.exports = router;
