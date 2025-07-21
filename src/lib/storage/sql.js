@@ -44,6 +44,16 @@ async function getAllPopulationTypes() {
 }
 
 /**
+ * Fetches all roles from the database.
+ * @returns {Promise<Array>} An array of roles objects.
+ */
+async function getAllRoles() {
+    const query = 'SELECT role_id, name, notes FROM role';
+    const [roles] = await pool.query(query);
+    return roles;
+}
+
+/**
  * Fetches all permissions from the database.
  * @returns {Promise<Array>} An array of permission objects.
  */
@@ -107,56 +117,32 @@ async function getUpcomingSailsData(startTime, endTime) {
     return results;
 }
 
-
-/**
- * Fetches all metadata required for application initialization.
- * This function uses smaller fetch functions and runs them in parallel.
- * @returns {Promise<Object>} An object containing arrays of boats, activities, population types, and permissions.
- */
-async function fetchMetadataFromDB() {
-    try {
-        const [boats, activities, populationTypes, permissions] = await Promise.all([
-            getAllBoats(),
-            getAllActivities(),
-            getAllPopulationTypes(),
-            getAllPermissions(),
-        ]);
-
-        return { boats, activities, populationTypes, permissions };
-
-    } catch (error) {
-        console.error("Error fetching metadata from DB:", error);
-        throw error;
-    }
-}
-
 /**
  * מחזיר משתמש לפי כתובת אימייל (לצורך התחברות / בדיקת כפילות).
  * @param {string} email
  * @returns {Promise<Object|null>}
  */
 async function getUserByEmail(email) {
-    const query = 'SELECT * FROM users WHERE email = ?';
+    const query = 'SELECT * FROM user WHERE email = ?';
     const [rows] = await pool.execute(query, [email]);
     return rows.length > 0 ? rows[0] : null;
 }
 
 /**
  * יוצר משתמש חדש במסד הנתונים.
- * @param {Object} userData - { email, password, firstName, lastName, phoneNumber }
+ * @param {Object} userData - { email, password, full_name, phone, role_id }
  * @returns {Promise<Object>} המשתמש החדש עם ה־ID שנוצר
  */
 async function createUser(userData) {
     const query = `
-        INSERT INTO users (email, password, first_name, last_name, phone_number, role_id, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO user (email, password, full_name, phone, role_id)
+        VALUES (?, ?, ?, ?, ?)
     `;
 
     const values = [
         userData.email,
         userData.password,
-        userData.firstName,
-        userData.lastName,
+        userData.fullName,
         userData.phoneNumber,
         userData.roleId
     ];
@@ -166,9 +152,9 @@ async function createUser(userData) {
     return {
         id: result.insertId,
         email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phoneNumber: userData.phoneNumber
+        full_name: userData.fullName,
+        phone: userData.phoneNumber,
+        role_id: userData.roleId
     };
 }
 
@@ -179,7 +165,7 @@ module.exports = {
     getAllActivities,
     getAllPopulationTypes,
     getAllPermissions,
-    fetchMetadataFromDB,
+    getAllRoles,
     getUserByEmail,
     createUser
 };

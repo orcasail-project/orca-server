@@ -19,26 +19,15 @@ const registrationSchema = Joi.object({
       'any.required': 'שדה הסיסמה הוא חובה'
     }),
 
-  firstName: Joi.string()
+  fullName: Joi.string()
     .min(2)
     .max(50)
     .required()
     .messages({
       'string.min': 'השם הפרטי חייב להכיל לפחות 2 תווים',
-      'string.max': 'השם הפרטי לא יכול להיות ארוך מ-50 תווים',
-      'string.empty': 'שדה השם הפרטי הוא חובה',
-      'any.required': 'שדה השם הפרטי הוא חובה'
-    }),
-
-  lastName: Joi.string()
-    .min(2)
-    .max(50)
-    .required()
-    .messages({
-      'string.min': 'שם המשפחה חייב להכיל לפחות 2 תווים',
-      'string.max': 'שם המשפחה לא יכול להיות ארוך מ-50 תווים',
-      'string.empty': 'שדה שם המשפחה הוא חובה',
-      'any.required': 'שדה שם המשפחה הוא חובה'
+      'string.max': 'השם לא יכול להיות ארוך מ-50 תווים',
+      'string.empty': 'שדה השם הוא חובה',
+      'any.required': 'שדה השם הוא חובה'
     }),
 
   phoneNumber: Joi.string()

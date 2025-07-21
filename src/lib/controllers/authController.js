@@ -8,7 +8,7 @@ const register = async (req, res) => {
   const { error, value } = registrationSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { email, password, firstName, lastName, phoneNumber, roleId } = value;
+  const { email, password, fullName, phoneNumber, roleId } = value;
 
   try {
     // בדיקה אם המשתמש כבר קיים
@@ -24,8 +24,7 @@ const register = async (req, res) => {
     const newUser = await createUser({
       email,
       password: hashedPassword,
-      firstName,
-      lastName,
+      fullName,
       phoneNumber,
       roleId: roleId || 2 // ברירת מחדל ל־roleId 2 אם לא נשלח
     });
