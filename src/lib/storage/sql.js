@@ -60,21 +60,7 @@ async function getAllPermissions() {
     return permissions;
 }
 
-/**
- * פונקציה מרכזית: מביאה רשימה שטוחה של כל השיוטים וההזמנות שלהם בטווח זמנים נתון.
- * @param {Date} startTime - תאריך ושעת התחלה של הטווח.
- * @param {Date} endTime - תאריך ושעת סיום של הטווח.
- * @returns {Promise<Array>} רשימה שטוחה של נתונים.
- */
-async function getUpcomingSailsData(startTime, endTime) {
-    const query = `
-        SELECT
-        
-    `;
 
-    const [results] = await pool.execute(query, [startTime, endTime]);
-    return results;
-}
 
 /**
  * Fetches all metadata required for application initialization.
@@ -114,7 +100,7 @@ async function findSailsWithOccupancy(searchParams) {
         const timeBeforeStr = new Date(timeBefore).toTimeString().slice(0, 8);
         const timeAfterStr = new Date(timeAfter).toTimeString().slice(0, 8);
 
-        // השאילתה המאוחדת והחכמה
+      
         const query = `
             SELECT 
                 s.id AS sail_id, 
@@ -154,7 +140,6 @@ async function findSailsWithOccupancy(searchParams) {
 module.exports = {
     initializeDatabasePool,
     getAllBoats,
-    getUpcomingSailsData,
     getAllActivities,
     getAllPopulationTypes,
     getAllPermissions,

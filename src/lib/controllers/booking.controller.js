@@ -3,15 +3,6 @@ const { checkAvailabilitySchema } = require('../schemas/booking.schema.js');
 const { ZodError } = require('zod');
 const { findSailsWithOccupancy } = require('../storage/sql');
 
-/**
- * פונקציית עזר: בודקת אם יש מקום פנוי בשיוט להזמנה חדשה.
- */
-// function isSailAvailable(sail, newBooking) {
-//     const free_places_activity = sail.activity_capacity - sail.current_activity_occupancy;
-//     const free_places_sail = sail.sail_capacity - sail.current_sail_occupancy;
-//     return free_places_activity >= newBooking.num_people_activity && free_places_sail >= newBooking.num_people_sail;
-// }
-
 
 
 function isSailAvailable(sail, newBooking) {
