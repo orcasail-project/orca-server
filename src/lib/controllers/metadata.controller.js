@@ -36,6 +36,22 @@ const getMetadata = async (req, res) => {
     }
 };
 
+const getAllRolesHandler = async (req, res) => {
+  try {
+    const roles = await getAllRole();
+    res.status(200).json(roles);
+  } catch (error) {
+    console.error('שגיאה בשליפת roles:', error);
+    res.status(500).json({ error: 'שגיאה בשרת בעת שליפת roles' });
+  }
+};
+
+
 module.exports = {
-    getMetadata
+    getMetadata,
+    getAllActivities,
+    getAllBoats,
+    getAllRolesHandler,
+    getAllPermissions,
+    getAllPopulationTypes
 };

@@ -68,7 +68,7 @@ async function getAllPermissions() {
  * @returns {Promise<Array>} רשימת כל הסירות.
  */
 async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name,boat_key, is_active FROM Boat ORDER BY sort_order');
+    const [boats] = await pool.query('SELECT id, name,boat_key, is_active FROM Boat');
     return boats;
 }
 
