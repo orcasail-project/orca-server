@@ -46,20 +46,51 @@ async function getAllPermissions() {
 }
 
 /**
+ * Fetches all boats from the database.
+ * @returns {Promise<Array>} An array of boat objects.
+ */
+async function getAllBoats() {
+    const [boats] = await pool.query('SELECT id, name, max_passengers FROM Boat');
+    return boats;
+}
+
+/**
+ * Fetches all boat-activity links from the database.
+ * @returns {Promise<Array>} An array of boat-activity link objects.
+ */
+async function getAllBoatActivities() {
+    const query = `
+    SELECT
+        b.name AS boat_name,
+        b.max_passengers AS boat_capacity,
+        a.name AS activity_name,
+        a.max_people_total AS activity_capacity,
+        (a.name IN ('אבובים', 'בננות')) AS requires_escort
+    FROM BoatActivity ba
+    JOIN Boat b ON ba.boat_id = b.id
+    JOIN Activity a ON ba.activity_id = a.id
+`;
+    const [links] = await pool.query(query);
+    return links;
+}
+
+/**
  * Fetches all metadata required for application initialization.
  * This function uses smaller fetch functions and runs them in parallel.
  * @returns {Promise<Object>} An object containing arrays of activities, population types, and permissions.
  */
 async function fetchMetadataFromDB() {
     try {
-
-        const [activities, populationTypes, permissions] = await Promise.all([
+       
+        const [activities, populationTypes, permissions, boats, boatActivities] = await Promise.all([
             getAllActivities(),
             getAllPopulationTypes(),
             getAllPermissions(),
+            getAllBoats(),
+            getAllBoatActivities()
         ]);
-
-        return { activities, populationTypes, permissions };
+    
+        return { activities, populationTypes, permissions, boats, boatActivities };
 
     } catch (error) {
         console.error("Error fetching metadata from DB:", error);

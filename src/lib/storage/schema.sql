@@ -11,8 +11,8 @@ CREATE TABLE Boat (
 CREATE TABLE Activity (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    min_age INT,
-    ticket_price DECIMAL(10, 2) NOT NULL, -- תוקן: DECIMAL במקום FLOAT
+    min_age INT NOT NULL,
+    ticket_price DECIMAL(10, 2) NOT NULL,
     max_people_total INT,
     notes TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -23,7 +23,8 @@ CREATE TABLE BoatActivity (
     boat_id INT NOT NULL,
     activity_id INT NOT NULL,
     FOREIGN KEY (boat_id) REFERENCES Boat(id),
-    FOREIGN KEY (activity_id) REFERENCES Activity(id)
+    FOREIGN KEY (activity_id) REFERENCES Activity(id),
+    UNIQUE KEY uq_boat_activity (boat_id, activity_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- טבלת סוגי אוכלוסיה
@@ -46,7 +47,7 @@ CREATE TABLE Sail (
     requires_orca_escort BOOLEAN DEFAULT FALSE,
     notes TEXT,
     FOREIGN KEY (population_type_id) REFERENCES PopulationType(id),
-    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id) -- תוקן: הפניה ל-id
+    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- טבלת לקוחות
@@ -56,7 +57,8 @@ CREATE TABLE Customer (
     name VARCHAR(255) NOT NULL,
     wants_whatsapp BOOLEAN DEFAULT FALSE,
     email VARCHAR(255),
-    notes TEXT
+    notes TEXT,
+    UNIQUE KEY uq_phone_number (phone_number) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- טבלת סוגי תשלום
@@ -71,13 +73,15 @@ CREATE TABLE Booking (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sail_id INT NOT NULL,
     customer_id INT NOT NULL,
+    created_at DATETIME NOT NULL, 
     num_people_sail INT NOT NULL,
     num_people_activity INT NOT NULL,
-    final_price DECIMAL(10, 2) NOT NULL, -- תוקן: DECIMAL במקום FLOAT
+    final_price DECIMAL(10, 2) NOT NULL,
     payment_type_id INT NOT NULL,
     is_phone_booking BOOLEAN DEFAULT FALSE,
     customer_arrived BOOLEAN DEFAULT FALSE,
     notes TEXT,
+    up_to_16_year BOOLEAN NOT NULL, 
     FOREIGN KEY (sail_id) REFERENCES Sail(id),
     FOREIGN KEY (customer_id) REFERENCES Customer(id),
     FOREIGN KEY (payment_type_id) REFERENCES PaymentType(id)
@@ -93,13 +97,11 @@ CREATE TABLE Permission (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- טבלת משתמשים
-CREATE TABLE `User` ( -- שימוש ב-Backticks למניעת התנגשות עם מילה שמורה
+CREATE TABLE `User` (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     permission_id INT NOT NULL,
     notes TEXT,
-    FOREIGN KEY (permission_id) REFERENCES Permission(id)
+    FOREIGN KEY (permission_id) REFERENCES Permission(id),
+    UNIQUE KEY uq_username (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-
