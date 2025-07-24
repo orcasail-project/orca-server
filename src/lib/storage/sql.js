@@ -58,7 +58,7 @@ async function getAllPermissions() {
  * @returns {Promise<Array>} רשימת כל הסירות.
  */
 async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name,boat_key, is_active FROM Boat ORDER BY sort_order');
+    const [boats] = await pool.query('SELECT id, name,id AS boat_key, is_active FROM Boat ORDER BY id');
     return boats;
 }
 
@@ -68,17 +68,17 @@ async function getAllBoats() {
  * @param {Date} endTime - תאריך ושעת סיום של הטווח.
  * @returns {Promise<Array>} רשימה שטוחה של נתונים.
  */
+
+
 async function getUpcomingSailsData(startTime, endTime) {
     const query = `
         SELECT 
-          b.id AS boat_id,
-          b.name AS boat_name,
-           b.boat_key AS boat_key,
+          b.id AS boat_id, -- הכי חשוב: ה-ID של הסירה
           s.id AS sail_id,
           TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
           s.actual_start_time,
-          s.population_type_id,
-          pt.name AS population_type_name,
+          s.population_type_id, -- שלח את ה-ID, הקליינט יתרגם
+          pt.name AS population_type_name, -- אפשר לשלוח כשם ברירת מחדל
           s.notes AS sail_notes,
           s.requires_orca_escort,
           s.is_private_group,
@@ -100,13 +100,9 @@ async function getUpcomingSailsData(startTime, endTime) {
           AND TIMESTAMP(s.date, s.planned_start_time) < ?
          ORDER BY b.sort_order, planned_start_time, bk.id;
     `;
-
-    // שליפת הנתונים מהמסד עם פרמטרים של טווח זמן
-    // שימוש ב-pool.execute כדי למנוע SQL Injection
     const [results] = await pool.execute(query, [startTime, endTime]);
     return results;
 }
-
 
 /**
  * Fetches all metadata required for application initialization.

@@ -1,21 +1,14 @@
 const sailsService = require('../storage/sql');
 const dashboardConfig = require('../../../config/dashboardConfig.js');
+
 /**
  * פונקציית עזר לחישוב סייקלים של חצי שעה לדשבורד.
- * מתחילה מהסייקל הנוכחי או הקודם (מעוגל לחצי שעה הקרובה למטה).
- * @returns {{cycles: string[], startTime: Date, endTime: Date}}
  */
 function getNextTimeCycles() {
-    // קבועים מהקונפיגורציה של הדשבורד
-    // אם לא מוגדר, ברירת המחדל היא 5 סייקלים של 30 דקות כל אחד
-    // ניתן להגדיר את הקבועים בקובץ config/dashboardConfig.js
     const NUM_CYCLES = dashboardConfig.NUM_CYCLES || 5;
     const CYCLE_DURATION_MINUTES = dashboardConfig.CYCLE_DURATION_MINUTES || 30;
-
     const cycles = [];
     const now = new Date();
-
-    // עיגול שעת ההתחלה לחצי השעה הקרובה (למטה)
     let minutes = now.getMinutes();
     if (minutes >= CYCLE_DURATION_MINUTES) {
         now.setMinutes(CYCLE_DURATION_MINUTES, 0, 0);
@@ -23,44 +16,36 @@ function getNextTimeCycles() {
         now.setMinutes(0, 0, 0);
     }
     const startTime = new Date(now.getTime());
-
-    // יצירת רשימת הסייקלים (העמודות בדשבורד)
     for (let i = 0; i < NUM_CYCLES; i++) {
         const cycleTime = new Date(startTime.getTime() + i * CYCLE_DURATION_MINUTES * 60 * 1000);
         const timeString = cycleTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
         cycles.push(timeString);
     }
-
-    // חישוב שעת הסיום לטווח השליפה מה-DB, מבוסס על אותם קבועים
     const endTime = new Date(startTime.getTime() + NUM_CYCLES * CYCLE_DURATION_MINUTES * 60 * 1000);
-
     return { cycles, startTime, endTime };
 }
 
 /**
  * Handler ראשי לבניית דשבורד השיוטים.
+ * השרת לא מתעסק בתרגום. הוא שולח מזהים (IDs) והקליינט אחראי לתצוגה.
  */
 async function getSailsDashboard(req, res) {
     try {
-        // 1. חשב את טווח הזמן ורשימת הסייקלים (עמודות הדשבורד)
+        // 1. חשב את טווח הזמן ורשימת הסייקלים
         const { cycles, startTime, endTime } = getNextTimeCycles();
 
-        // console.log('Fetching data for time range:', { startTime, endTime });
-
-        // 2. שלוף את כל הנתונים הרלוונטיים מה-DB במקביל.
-        // הקונטרולר לא מנהל חיבורים, רק קורא לשירות.
+        // 2. שלוף את כל הנתונים הרלוונטיים
         const [allBoats, flatSailsData] = await Promise.all([
             sailsService.getAllBoats(),
             sailsService.getUpcomingSailsData(startTime, endTime)
         ]);
 
-        // 3. עבד את הנתונים השטוחים למבנה מקונן (קיבוץ לפי שיוט)
+        // 3. עבד את הנתונים השטוחים למבנה מקונן (sailsMap)
         const sailsMap = {};
         flatSailsData.forEach(row => {
             if (!sailsMap[row.sail_id]) {
                 sailsMap[row.sail_id] = {
-                    boat_key: row.boat_key,
-                    boat_name: row.boat_name, // אפשר להשאיר בינתיים, אבל לא נשתמש בו כמפתח
+                    boat_id: row.boat_id, // חשוב לשמור את ה-ID של הסירה
                     sail_id: row.sail_id,
                     planned_start_time: new Date(row.planned_start_time).toISOString(),
                     actual_start_time: row.actual_start_time,
@@ -87,16 +72,13 @@ async function getSailsDashboard(req, res) {
             }
         });
 
-        // 4. חשב את סך המשתתפים לכל שיוט
+        // 4. חשב סך משתתפים והוסף סטטוסים (ללא שינוי)
         Object.values(sailsMap).forEach(sail => {
             sail.total_people_on_sail = sail.bookings.reduce((sum, booking) => sum + (booking.num_people_sail || 0), 0);
             sail.total_people_on_activity = sail.bookings.reduce((sum, booking) => sum + (booking.num_people_activity || 0), 0);
         });
         let nextSailTime = null;
-
-        // א. מצא את זמן השיוט המתוכנן המוקדם ביותר מבין אלו שטרם יצאו
         Object.values(sailsMap).forEach(sail => {
-            // התחשב רק בשיוטים שאין להם זמן יציאה בפועל
             if (!sail.actual_start_time) {
                 const sailTime = new Date(sail.planned_start_time).getTime();
                 if (nextSailTime === null || sailTime < nextSailTime) {
@@ -104,59 +86,58 @@ async function getSailsDashboard(req, res) {
                 }
             }
         });
-
-        // ב. הוסף את הדגל is_next_sail לכל השיוטים הרלוונטיים
+        const LATE_THRESHOLD_MINUTES = dashboardConfig.LATE_THRESHOLD_MINUTES || 15;
+        const now = new Date().getTime();
         Object.values(sailsMap).forEach(sail => {
-            // אתחול השדה כ-false
-            sail.is_next_sail = false;
-            if (nextSailTime !== null && !sail.actual_start_time) {
-                const sailTime = new Date(sail.planned_start_time).getTime();
-                // אם זמן השיוט הזה הוא אכן הזמן הבא, סמן אותו
-                if (sailTime === nextSailTime) {
-                    sail.is_next_sail = true;
-                }
+            const sailTime = new Date(sail.planned_start_time).getTime();
+            sail.is_next_sail = (nextSailTime !== null && !sail.actual_start_time && sailTime === nextSailTime);
+            if (sail.actual_start_time) { sail.status = 'at-sea'; return; }
+            const hasPhoneBooking = sail.bookings.some(b => b.is_phone_booking);
+            if (hasPhoneBooking) {
+                const diffMinutes = (now - sailTime) / (1000 * 60);
+                if (diffMinutes >= LATE_THRESHOLD_MINUTES) { sail.status = 'expired'; return; }
             }
+            if (sail.is_next_sail) { sail.status = 'next'; return; }
+            sail.status = 'pending';
         });
+
         // 5. בנה את מבנה ה-JSON הסופי
         const sails_data = {};
 
-        // אתחול מבנה הנתונים עם שמות הסירות והסייקלים
-        // אם סירה לא פעילה, נשתמש בטקסט מהקונפיגורציה
-        // או בברירת מחדל "סירה לא פעילה"
+        // אתחול המבנה עם ה-ID של הסירה כמפתח
         allBoats.forEach(boat => {
-            const boatKey = boat.boat_key;
+            const boatId = boat.id; // המפתח הוא ה-ID של הסירה
 
             if (boat.is_active) {
-                sails_data[boatKey] = {};
+                sails_data[boatId] = {};
                 cycles.forEach(cycleTime => {
-                    sails_data[boatKey][cycleTime] = null;
+                    sails_data[boatId][cycleTime] = null;
                 });
             } else {
-                sails_data[boatKey] = dashboardConfig.INACTIVE_BOAT_LABEL || "סירה לא פעילה";
-
+                // שלח מזהה טקסטואלי שהקליינט ידע לפרש
+                sails_data[boatId] = 'inactive'; 
             }
         });
 
         // 6. מלא את הנתונים במבנה הסופי
         Object.values(sailsMap).forEach(sail => {
-            const boatKey = sail.boat_key;
-            // const boatName = sail.boat_name;
+            const boatId = sail.boat_id; // השתמש ב-ID של הסירה מהשיוט
             const cycleTime = new Date(sail.planned_start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-            if (sails_data[boatKey] && sails_data[boatKey][cycleTime] !== undefined) {
-                delete sail.boat_name;
-                delete sail.boat_key;
-                sails_data[boatKey][cycleTime] = sail;
+            // ודא שהסירה קיימת במבנה הנתונים
+            if (sails_data[boatId] && sails_data[boatId][cycleTime] !== undefined) {
+                sails_data[boatId][cycleTime] = sail;
             }
         });
 
-        // 7. שלח את התגובה הסופית
+        // 7. שלח את התגובה הסופית לקליינט
         res.status(200).json({
             sails_data: sails_data
         });
 
     } catch (error) {
         console.error("Error in getSailsDashboardHandler:", error);
+        // שלח הודעת שגיאה גנרית, הקליינט יתרגם אותה
         res.status(500).json({ message: "Failed to fetch dashboard data", error: error.message });
     }
 }
