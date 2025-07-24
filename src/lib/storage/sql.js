@@ -115,14 +115,14 @@ async function getUpcomingSailsData(startTime, endTime) {
  */
 async function fetchMetadataFromDB() {
     try {
-        const [boats, activities, populationTypes, permissions] = await Promise.all([
-            getAllBoats(),
+        const [ activities, populationTypes, permissions] = await Promise.all([
+            // getAllBoats(),
             getAllActivities(),
             getAllPopulationTypes(),
             getAllPermissions(),
         ]);
 
-        return { boats, activities, populationTypes, permissions };
+        return {  activities, populationTypes, permissions };
 
     } catch (error) {
         console.error("Error fetching metadata from DB:", error);
