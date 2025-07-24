@@ -16,4 +16,15 @@ router.get('/nextSail', async (req, res) => {
   }
 });
 
+router.get('/current', async (req, res) => {
+  try {
+    const data = await sailsService.getCurrentSails();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch current sails' });
+  }
+});
+
+
 module.exports = router;
