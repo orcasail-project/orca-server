@@ -1,9 +1,6 @@
+
 const express = require('express');
 const router = express.Router();
-
-const metadataRouter = require('./metadata.router.js');
-
-router.use('/metadata', metadataRouter);
 
 router.get('/', (req, res) => {
     res.send('Main API Router');
@@ -22,5 +19,14 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
     next(err);
   }
 });
+
+const metadataRouter = require('./metadata.router');
+
+router.use('/metadata', metadataRouter);
+
+
+const authRouter = require('./authRouter');
+
+router.use('/auth', authRouter);
 
 module.exports = router;

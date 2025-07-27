@@ -83,23 +83,31 @@ CREATE TABLE Booking (
     FOREIGN KEY (payment_type_id) REFERENCES PaymentType(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- טבלת הרשאות
+-- טבלת הרשאות מעודכנת
 CREATE TABLE Permission (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    role_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     can_assign BOOLEAN NOT NULL,
     can_change_status BOOLEAN NOT NULL,
+    notes TEXT,
+    FOREIGN KEY (role_id) REFERENCES Role(role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- טבלת תפקידים
+CREATE TABLE Role (
+    role_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
     notes TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- טבלת משתמשים
-CREATE TABLE `User` ( -- שימוש ב-Backticks למניעת התנגשות עם מילה שמורה
+-- טבלת משתמשים מעודכנת
+CREATE TABLE `User`(
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    permission_id INT NOT NULL,
-    notes TEXT,
-    FOREIGN KEY (permission_id) REFERENCES Permission(id)
+    full_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    phone VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    email VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role_id INT NOT NULL,
+    FOREIGN KEY (role_id) REFERENCES Roles(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-

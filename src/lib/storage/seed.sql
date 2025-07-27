@@ -14,10 +14,15 @@ INSERT INTO PopulationType (name, notes) VALUES
 ('פרטי', 'לא ניתן לצרף'),
 ('קבוצה', NULL);
 
+INSERT INTO role (role_id, name) VALUES
+  (1, 'מנהל'),
+  (2, 'סקיפר'),
+  (3, 'אדמין');
+
 INSERT INTO Permission (name, can_assign, can_change_status) VALUES
 ('מנהל', TRUE, TRUE),         
 ('סקיפר', TRUE, FALSE),      
-('עובד משרד', TRUE, TRUE);    
+('עובד משרד', TRUE, TRUE);   
 
 INSERT INTO PaymentType (name) VALUES
 ('אשראי'),
