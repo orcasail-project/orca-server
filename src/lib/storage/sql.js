@@ -158,6 +158,23 @@ async function createUser(userData) {
     };
 }
 
+const getUserByNameAndRole = async (username, roleId) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM users 
+       WHERE full_name = @name AND role_id = @roleId`,
+      {
+        name: username,
+        roleId: roleId
+      }
+    );
+    return result.recordset[0];
+  } catch (err) {
+    console.error('Error in getUserByNameAndRole:', err);
+    throw err;
+  }
+};
+
 module.exports = {
     initializeDatabasePool,
     getAllBoats,
@@ -167,5 +184,6 @@ module.exports = {
     getAllPermissions,
     getAllRoles,
     getUserByEmail,
-    createUser
+    createUser,
+    getUserByNameAndRole
 };

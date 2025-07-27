@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const { registrationSchema, loginSchema } = require('../schemas/userSchema');
-const { getUserByEmail, createUser } = require('../storage/sql');
+const { getUserByEmail, createUser, getUserByNameAndRole } = require('../storage/sql');
 
 const register = async (req, res) => {
   const { error, value } = registrationSchema.validate(req.body);
@@ -37,5 +37,42 @@ const register = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  const { error, value } = loginSchema.validate(req.body);
+  if (error) return res.status(400).json({ message: error.details[0].message });
 
-module.exports = { register };
+  const { username, password, userType } = value;
+
+  try {
+    // בדיקה אם המשתמש קיים עם סוג המשתמש הנכון
+    const user = await getUserByNameAndRole(username, userType);
+    if (!user) {
+      return res.status(401).json({ message: 'שם משתמש או סיסמה שגויים' });
+    }
+
+    // בדיקת הסיסמה
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'שם משתמש או סיסמה שגויים' });
+    }
+
+    // החזרת פרטי המשתמש
+    const userResponse = {
+      userId: user.id,
+      name: user.full_name,
+      email: user.email,
+      type: user.role_id
+    };
+
+    res.json({ 
+      message: 'התחברת בהצלחה',
+      user: userResponse
+    });
+
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'שגיאה בשרת' });
+  }
+};
+
+module.exports = { register, login };
