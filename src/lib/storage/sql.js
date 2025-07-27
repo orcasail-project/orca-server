@@ -1,18 +1,14 @@
 const mysql = require('mysql2/promise');
 const config = require('config');
-
+const mysqlConfig = config.get('mysql'); // <-- פה הגדרה אחת לכל הקובץ
 let pool;
+
 
 /**
  * מאתחל את מאגר החיבורים (Connection Pool) למסד הנתונים
  * תוך שימוש בהגדרות מקובץ הקונפיגורציה.
  */
 async function initializeDatabasePool() {
-    const mysqlConfig = config.get('mysql');
-  
-let pool;
-
-async function connectToDatabase() {
     try {
         if (!pool) {
             pool = mysql.createPool(mysqlConfig);
@@ -30,10 +26,10 @@ async function connectToDatabase() {
 
 async function query(sql, params = []) {
     try {
-        if (!connection) {
-            await connectToDatabase();
+        if (!pool) {
+            await initializeDatabasePool();
         }
-        const [results] = await connection.execute(sql, params);
+        const [results] = await pool.execute(sql, params);
         return results;
     } catch (error) {
         console.error('Database query error:', error.message);
@@ -177,9 +173,8 @@ async function createUser(userData) {
 }
 
 module.exports = {
-  connectToDatabase,
-  query,
-  initializeDatabasePool,
+    query,
+    initializeDatabasePool,
     getAllBoats,
     getUpcomingSailsData,
     getAllActivities,
@@ -189,4 +184,3 @@ module.exports = {
     getUserByEmail,
     createUser
 };
-

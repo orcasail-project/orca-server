@@ -1,7 +1,6 @@
 const express = require('express');
 const config = require('config');
 const cors = require('cors');
-const { connectToDatabase } = require('./src/lib/storage/sql');
 const createTables = require('./src/lib/storage/createTables');
 
 const { initializeDatabasePool } = require('./src/lib/storage/sql');
@@ -22,7 +21,6 @@ const port = config.get("port") || 3000;
 async function startServer() {
     try {
 
-        await connectToDatabase();
         await initializeDatabasePool();
 
         app.listen(port, () => {

@@ -24,6 +24,7 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
 const metadataRouter = require('./metadata.router');
 
 router.use('/metadata', metadataRouter);
+
 const sailsRouter = require('./sails');
 router.use('/api/sails', sailsRouter);
 
