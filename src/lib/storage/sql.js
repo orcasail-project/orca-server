@@ -68,7 +68,7 @@ async function getAllPermissions() {
  * @returns {Promise<Array>} רשימת כל הסירות.
  */
 async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name,boat_key, is_active FROM Boat');
+    const [boats] = await pool.query('SELECT id, name,id AS boat_key, is_active FROM Boat ORDER BY id');
     return boats;
 }
 
@@ -158,22 +158,19 @@ async function createUser(userData) {
     };
 }
 
-const getUserByNameAndRole = async (username, roleId) => {
-  try {
-    const result = await pool.query(
-      `SELECT * FROM users 
-       WHERE full_name = @name AND role_id = @roleId`,
-      {
-        name: username,
-        roleId: roleId
-      }
-    );
-    return result.recordset[0];
-  } catch (err) {
-    console.error('Error in getUserByNameAndRole:', err);
-    throw err;
-  }
-};
+// const getUserByEmailAndRole = async (email, roleId) => {
+//   try {
+//     const [rows] = await pool.query(
+//       `SELECT * FROM user WHERE email = ? AND role_id = ?`,
+//       [email, roleId]
+//     );
+//     return rows[0];
+//   } catch (err) {
+//     console.error('Error in getUserByEmailAndRole:', err);
+//     throw err;
+//   }
+// };
+
 
 module.exports = {
     initializeDatabasePool,
@@ -184,6 +181,5 @@ module.exports = {
     getAllPermissions,
     getAllRoles,
     getUserByEmail,
-    createUser,
-    getUserByNameAndRole
+    createUser
 };

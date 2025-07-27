@@ -45,10 +45,13 @@ const registrationSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  username: Joi.string()
+  email: Joi.string()
+    .email()
     .required()
     .messages({
-      'any.required': 'שם משתמש הוא שדה חובה'
+      'string.email': 'האימייל אינו תקין',
+      'string.empty': 'שדה האימייל הוא חובה',
+      'any.required': 'שדה האימייל הוא חובה'
     }),
   password: Joi.string()
     .min(6)

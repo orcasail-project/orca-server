@@ -1,8 +1,8 @@
 const bcrypt = require('bcryptjs');
 // const jwt = require('jsonwebtoken');
-const config = require('config');
+// const config = require('config');
 const { registrationSchema, loginSchema } = require('../schemas/userSchema');
-const { getUserByEmail, createUser, getUserByNameAndRole } = require('../storage/sql');
+const { getUserByEmail, createUser } = require('../storage/sql');
 
 const register = async (req, res) => {
   const { error, value } = registrationSchema.validate(req.body);
@@ -41,19 +41,22 @@ const login = async (req, res) => {
   const { error, value } = loginSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { username, password, userType } = value;
+  const { email, password, userType } = value;
 
   try {
     // בדיקה אם המשתמש קיים עם סוג המשתמש הנכון
-    const user = await getUserByNameAndRole(username, userType);
+    const user = await getUserByEmail(email, userType);
     if (!user) {
-      return res.status(401).json({ message: 'שם משתמש או סיסמה שגויים' });
+      return res.status(401).json({ message: 'המייל לא קיים' });
     }
-
+    // בדיקה אם סוג המשתמש תואם
+    if (user.role_id !== userType) {
+      return res.status(401).json({ message: 'סוג המשתמש לא תואם' });
+    }
     // בדיקת הסיסמה
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ message: 'שם משתמש או סיסמה שגויים' });
+      return res.status(401).json({ message: 'הסיסמא שגויה' });
     }
 
     // החזרת פרטי המשתמש
