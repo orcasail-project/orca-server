@@ -27,6 +27,6 @@ router.use('/metadata', metadataRouter);
 
 const authRouter = require('./authRouter');
 
-router.use('/api/auth', authRouter);
+router.use('/auth', authRouter);
 
 module.exports = router;

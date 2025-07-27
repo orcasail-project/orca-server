@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+// const jwt = require('jsonwebtoken');
 const config = require('config');
 const { registrationSchema, loginSchema } = require('../schemas/userSchema');
 const { getUserByEmail, createUser, getUserByNameAndRole } = require('../storage/sql');

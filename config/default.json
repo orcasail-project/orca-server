@@ -1,7 +1,5 @@
 {
   "port": 3000,
-  "jwtSecret": "SuperSecretJWTKey123!",
-  "jwtExpiresIn": "1h",
   "mysql": {
     "host": "localhost",
     "user": "DEVALOPER",
