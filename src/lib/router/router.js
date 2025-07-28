@@ -1,9 +1,9 @@
+
 const express = require('express');
 const router = express.Router();
 
-// זהו ניתוב בסיסי שמחזיר מחרוזת פשוטה "hi" כדי לבדוק שהראוטר פועל
-router.route("/").get((req, res) => {
-  res.send("hi");
+router.get('/', (req, res) => {
+    res.send('Main API Router');
 });
 
 // הגדרת קבוע לנתיב /helloworld
@@ -20,11 +20,18 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
   }
 });
 
+
+const metadataRouter = require('./metadata.router');
+
+router.use('/metadata', metadataRouter);
 const sailsRouter = require('./sails');
 router.use('/api/sails', sailsRouter);
 
-router.get('/', (req, res) => res.send('hi'));
 
 
+const authRouter = require('./authRouter');
+
+router.use('/auth', authRouter);
 
 module.exports = router;
+
