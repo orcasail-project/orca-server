@@ -105,6 +105,66 @@ async function getUpcomingSailsData(startTime, endTime) {
 }
 
 /**
+ * מביא פרטי שיוט בסיסיים לפי מזהה השיוט
+ * @param {number} sailId - מזהה השיוט
+ * @returns {Promise<Object|null>} נתוני השיוט או null אם לא נמצא
+ */
+async function getSailById(sailId) {
+    const sailQuery = `
+        SELECT 
+            s.id AS sail_id,
+            s.date,
+            s.planned_start_time,
+            s.actual_start_time,
+            s.end_time,
+            s.is_private_group,
+            s.requires_orca_escort, -- השדה המקורי מהטבלה
+            s.notes,
+            pt.name AS population_type,
+            a.name AS boat_activity,
+            b.name AS boat,
+            b.max_passengers AS boat_max_capacity -- הוספנו את קיבולת הסירה לחישובים
+        FROM Sail s
+        LEFT JOIN PopulationType pt ON pt.id = s.population_type_id
+        LEFT JOIN BoatActivity ba ON ba.id = s.boat_activity_id
+        LEFT JOIN Activity a ON a.id = ba.activity_id
+        LEFT JOIN Boat b ON b.id = ba.boat_id
+        WHERE s.id = ?
+    `;
+
+    const [sailResults] = await pool.execute(sailQuery, [sailId]);
+    return sailResults.length > 0 ? sailResults[0] : null;
+}
+
+/**
+ * מביא את ההזמנות של שיוט ספציפי
+ * @param {number} sailId - מזהה השיוט
+ * @returns {Promise<Array>} רשימת ההזמנות
+ */
+async function getBookingsBySailId(sailId) {
+    const bookingsQuery = `
+        SELECT 
+            bk.id AS booking_id,
+            c.name,
+            c.phone_number AS phone,
+            bk.num_people_activity,
+            bk.num_people_sail,
+            bk.final_price,
+            bk.notes AS note,
+            bk.up_to_16_year,
+            pt_payment.name AS payment_type
+        FROM Booking bk
+        LEFT JOIN Customer c ON c.id = bk.customer_id
+        LEFT JOIN PaymentType pt_payment ON pt_payment.id = bk.payment_type_id
+        WHERE bk.sail_id = ?
+        ORDER BY bk.id
+    `;
+
+    const [bookingsResults] = await pool.execute(bookingsQuery, [sailId]);
+    return bookingsResults;
+}
+
+/**
  * Fetches all metadata required for application initialization.
  * This function uses smaller fetch functions and runs them in parallel.
  * @returns {Promise<Object>} An object containing arrays of boats, activities, population types, and permissions.
@@ -134,4 +194,6 @@ module.exports = {
     getAllPopulationTypes,
     getAllPermissions,
     fetchMetadataFromDB,
+    getSailById,
+    getBookingsBySailId,
 };

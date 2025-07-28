@@ -2,12 +2,21 @@ const express = require('express');
 const router = express.Router();
 
 const metadataRouter = require('./metadata.router.js');
+const sailDetailsRouter = require('./sailDetailsRouter.js');
 
-router.use('/metadata', metadataRouter);
+// router.use('/sails', sailDetailsRouter);
+console.log('4. [ראוטר ראשי]: הקובץ נטען.');
+
 
 router.get('/', (req, res) => {
     res.send('Main API Router');
 });
+router.use('/metadata', metadataRouter);
+
+console.log('5. [ראוטר ראשי]: עומד לטעון את ראוטר השיוטים על נתיב /sails');
+router.use('/sails', sailDetailsRouter);
+console.log('6. [ראוטר ראשי]: ראוטר השיוטים נטען בהצלחה.');
+// router.use('/sails', sailDetailsRouter);
 
 // הגדרת קבוע לנתיב /helloworld
 const HELLO_WORLD = "/helloworld";
