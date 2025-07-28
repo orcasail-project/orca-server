@@ -9,18 +9,38 @@ let pool;
  */
 async function initializeDatabasePool() {
     const mysqlConfig = config.get('mysql');
+  
+let pool;
 
+async function connectToDatabase() {
     try {
-        pool = mysql.createPool(mysqlConfig);
-
-        await pool.query('SELECT 1');
-        console.log(`Successfully created connection pool for database '${mysqlConfig.database}'.`);
-
+        if (!pool) {
+            pool = mysql.createPool(mysqlConfig);
+            await pool.query('SELECT 1');
+            console.log(`Successfully created connection pool for database '${mysqlConfig.database}'.`);
+        }
+        return pool;
     } catch (error) {
         console.error(`Error creating connection pool for database '${mysqlConfig.database}':`, error.message);
         throw error;
     }
 }
+
+
+
+async function query(sql, params = []) {
+    try {
+        if (!connection) {
+            await connectToDatabase();
+        }
+        const [results] = await connection.execute(sql, params);
+        return results;
+    } catch (error) {
+        console.error('Database query error:', error.message);
+        throw error;
+    }
+}
+
 
 
 
@@ -157,7 +177,9 @@ async function createUser(userData) {
 }
 
 module.exports = {
-    initializeDatabasePool,
+  connectToDatabase,
+  query,
+  initializeDatabasePool,
     getAllBoats,
     getUpcomingSailsData,
     getAllActivities,
@@ -167,3 +189,4 @@ module.exports = {
     getUserByEmail,
     createUser
 };
+

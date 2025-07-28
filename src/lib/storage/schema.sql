@@ -3,6 +3,7 @@ CREATE TABLE Boat (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    gate_number VARCHAR(50),
     max_passengers INT NOT NULL,
     notes TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -46,8 +47,9 @@ CREATE TABLE Sail (
     requires_orca_escort BOOLEAN DEFAULT FALSE,
     notes TEXT,
     FOREIGN KEY (population_type_id) REFERENCES PopulationType(id),
-    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id) -- תוקן: הפניה ל-id
+    FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- טבלת לקוחות
 CREATE TABLE Customer (
@@ -101,6 +103,7 @@ CREATE TABLE Role (
     notes TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
 -- טבלת משתמשים מעודכנת
 CREATE TABLE `User`(
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,3 +114,4 @@ CREATE TABLE `User`(
     role_id INT NOT NULL,
     FOREIGN KEY (role_id) REFERENCES Roles(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
