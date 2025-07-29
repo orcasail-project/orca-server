@@ -83,16 +83,14 @@ function transformRawDataToMetadata(rawData) {
             // הנהג
             let capacity = link.boat_capacity - 1;
 
-            //אם נדרש מלווה מוריד
-            if (link.requires_escort) {
-                capacity -= 1;
-            }
+           
+            // // מוצא את המקסימום בין קיבולת הסירה (לאחר הורדות) וקיבולת הפעילות
+            // // אם לפעילות אין מגבלה משלה (activity_capacity is null), נתעלם ממנה.
+            // if (link.activity_capacity !== null) {
+            //     capacity = Math.max(capacity, link.activity_capacity);
+            // }
 
-            // מוצא את המינימום בין קיבולת הסירה (לאחר הורדות) וקיבולת הפעילות
-            // אם לפעילות אין מגבלה משלה (activity_capacity is null), נתעלם ממנה.
-            if (link.activity_capacity !== null) {
-                capacity = Math.min(capacity, link.activity_capacity);
-            }
+
 
             acc[key] = capacity;
             return acc;
@@ -100,14 +98,16 @@ function transformRawDataToMetadata(rawData) {
     };
 
 
-    return {
+  return {
+    data: {
         activities,
         populationTypes,
         permissions,
         boats,
-        metadata,
-        computed
-    };
+    },
+    metadata,
+    computed
+};
 }
 
 module.exports = {

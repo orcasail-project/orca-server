@@ -11,7 +11,7 @@ CREATE TABLE Boat (
 CREATE TABLE Activity (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    min_age INT NOT NULL,
+    min_age INT ,
     ticket_price DECIMAL(10, 2) NOT NULL,
     max_people_total INT,
     notes TEXT
