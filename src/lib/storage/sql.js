@@ -1,8 +1,7 @@
 const mysql = require('mysql2/promise');
 const config = require('config');
-const mysqlConfig = config.get('mysql'); // <-- פה הגדרה אחת לכל הקובץ
+const mysqlConfig = config.get('mysql');
 let pool;
-
 
 /**
  * מאתחל את מאגר החיבורים (Connection Pool) למסד הנתונים
@@ -22,8 +21,9 @@ async function initializeDatabasePool() {
     }
 }
 
-
-
+/**
+ * פונקציה גנרית להרצת שאילתות SQL
+ */
 async function query(sql, params = []) {
     try {
         if (!pool) {
@@ -37,16 +37,13 @@ async function query(sql, params = []) {
     }
 }
 
-
-
-
 /**
  * Fetches all activities from the database.
  * @returns {Promise<Array>} An array of activity objects.
  */
 async function getAllActivities() {
-    const query = 'SELECT id, name, ticket_price, min_age, max_people_total FROM Activity';
-    const [activities] = await pool.query(query);
+    const sql = 'SELECT id, name, ticket_price, min_age, max_people_total FROM Activity';
+    const [activities] = await pool.query(sql);
     return activities;
 }
 
@@ -64,8 +61,8 @@ async function getAllPopulationTypes() {
  * @returns {Promise<Array>} An array of roles objects.
  */
 async function getAllRoles() {
-    const query = 'SELECT role_id, name, notes FROM role';
-    const [roles] = await pool.query(query);
+    const sql = 'SELECT role_id, name, notes FROM role';
+    const [roles] = await pool.query(sql);
     return roles;
 }
 
@@ -74,8 +71,8 @@ async function getAllRoles() {
  * @returns {Promise<Array>} An array of permission objects.
  */
 async function getAllPermissions() {
-    const query = 'SELECT id, name, can_assign, can_change_status FROM Permission';
-    const [permissions] = await pool.query(query);
+    const sql = 'SELECT id, name, can_assign, can_change_status FROM Permission';
+    const [permissions] = await pool.query(sql);
     return permissions;
 }
 
@@ -84,9 +81,39 @@ async function getAllPermissions() {
  * @returns {Promise<Array>} רשימת כל הסירות.
  */
 async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name,id AS boat_key, is_active FROM Boat ORDER BY id');
+    const [boats] = await pool.query('SELECT id, name, id AS boat_key, is_active FROM Boat ORDER BY id');
     return boats;
 }
+
+/**
+ * Fetches all boats from the database for metadata purposes.
+ * @returns {Promise<Array>} An array of boat objects.
+ */
+async function getAllBoatsToMataData() {
+    const [boats] = await pool.query('SELECT id, name, max_passengers FROM Boat');
+    return boats;
+}
+
+/**
+ * Fetches all boat-activity links from the database.
+ * @returns {Promise<Array>} An array of boat-activity link objects.
+ */
+async function getAllBoatActivities() {
+    const sql = `
+        SELECT
+            b.name AS boat_name,
+            b.max_passengers AS boat_capacity,
+            a.name AS activity_name,
+            a.max_people_total AS activity_capacity,
+            (a.name IN ('אבובים', 'בננות')) AS requires_escort
+        FROM BoatActivity ba
+        JOIN Boat b ON ba.boat_id = b.id
+        JOIN Activity a ON ba.activity_id = a.id
+    `;
+    const [links] = await pool.query(sql);
+    return links;
+}
+
 
 /**
  * פונקציה מרכזית: מביאה רשימה שטוחה של כל השיוטים וההזמנות שלהם בטווח זמנים נתון.
@@ -94,17 +121,15 @@ async function getAllBoats() {
  * @param {Date} endTime - תאריך ושעת סיום של הטווח.
  * @returns {Promise<Array>} רשימה שטוחה של נתונים.
  */
-
-
 async function getUpcomingSailsData(startTime, endTime) {
-    const query = `
+    const sql = `
         SELECT 
-          b.id AS boat_id, -- הכי חשוב: ה-ID של הסירה
+          b.id AS boat_id,
           s.id AS sail_id,
           TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
           s.actual_start_time,
-          s.population_type_id, -- שלח את ה-ID, הקליינט יתרגם
-          pt.name AS population_type_name, -- אפשר לשלוח כשם ברירת מחדל
+          s.population_type_id,
+          pt.name AS population_type_name,
           s.notes AS sail_notes,
           s.requires_orca_escort,
           s.is_private_group,
@@ -124,9 +149,9 @@ async function getUpcomingSailsData(startTime, endTime) {
         WHERE 
           TIMESTAMP(s.date, s.planned_start_time) >= ?
           AND TIMESTAMP(s.date, s.planned_start_time) < ?
-         ORDER BY b.sort_order, planned_start_time, bk.id;
+         ORDER BY b.id, planned_start_time, bk.id;
     `;
-    const [results] = await pool.execute(query, [startTime, endTime]);
+    const [results] = await pool.execute(sql, [startTime, endTime]);
     return results;
 }
 
@@ -135,10 +160,9 @@ async function getUpcomingSailsData(startTime, endTime) {
  * @param {string} email
  * @returns {Promise<Object|null>}
  */
-
 async function getUserByEmail(email) {
-    const query = 'SELECT * FROM user WHERE email = ?';
-    const [rows] = await pool.execute(query, [email]);
+    const sql = 'SELECT * FROM User WHERE email = ?';
+    const [rows] = await pool.execute(sql, [email]);
     return rows.length > 0 ? rows[0] : null;
 }
 
@@ -148,11 +172,10 @@ async function getUserByEmail(email) {
  * @returns {Promise<Object>} המשתמש החדש עם ה־ID שנוצר
  */
 async function createUser(userData) {
-    const query = `
-        INSERT INTO user (email, password, full_name, phone, role_id)
+    const sql = `
+        INSERT INTO User (email, password, full_name, phone, role_id)
         VALUES (?, ?, ?, ?, ?)
     `;
-
     const values = [
         userData.email,
         userData.password,
@@ -160,9 +183,7 @@ async function createUser(userData) {
         userData.phoneNumber,
         userData.roleId
     ];
-
-    const [result] = await pool.execute(query, values);
-
+    const [result] = await pool.execute(sql, values);
     return {
         id: result.insertId,
         email: userData.email,
@@ -172,15 +193,19 @@ async function createUser(userData) {
     };
 }
 
+
+// בלוק ייצוא מאוחד המכיל את כל הפונקציות הנחוצות
 module.exports = {
-    query,
     initializeDatabasePool,
-    getAllBoats,
-    getUpcomingSailsData,
+    query,
     getAllActivities,
     getAllPopulationTypes,
     getAllPermissions,
     getAllRoles,
+    getAllBoats,
+    getAllBoatsToMataData,
+    getAllBoatActivities,
+    getUpcomingSailsData,
     getUserByEmail,
     createUser
 };
