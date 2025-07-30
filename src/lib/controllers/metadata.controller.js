@@ -1,21 +1,43 @@
 // File: src/lib/controllers/metadata.controller.js
-
-const { fetchMetadataFromDB } = require('../storage/sql');
+const {
+    getAllActivities,
+    getAllPopulationTypes,
+    getAllPermissions,
+    getAllBoats,
+    getAllBoatActivities
+} = require('../storage/sql');
 
 /**
  * Endpoint to get all application metadata.
- * Fetches raw data from the DB and transforms it into a structured object for the client.
+ * Fetches raw data from the DB by calling individual fetch functions
+ * and then transforms it into a structured object for the client.
  */
 const getMetadata = async (req, res) => {
     try {
-        const rawData = await fetchMetadataFromDB();
+        const [
+            activities,
+            populationTypes,
+            permissions,
+            boats,
+            boatActivities
+        ] = await Promise.all([
+            getAllActivities(),
+            getAllPopulationTypes(),
+            getAllPermissions(),
+            getAllBoats(),
+            getAllBoatActivities()
+        ]);
+
+        const rawData = { activities, populationTypes, permissions, boats, boatActivities };
         const finalPayload = transformRawDataToMetadata(rawData);
         res.status(200).json(finalPayload);
+
     } catch (error) {
         console.error("Error in getMetadata controller:", error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 
 /**
  * Transforms raw database arrays into a structured metadata object as required by the client specification.
@@ -83,7 +105,7 @@ function transformRawDataToMetadata(rawData) {
             // הנהג
             let capacity = link.boat_capacity - 1;
 
-           
+
             // // מוצא את המקסימום בין קיבולת הסירה (לאחר הורדות) וקיבולת הפעילות
             // // אם לפעילות אין מגבלה משלה (activity_capacity is null), נתעלם ממנה.
             // if (link.activity_capacity !== null) {
@@ -98,16 +120,16 @@ function transformRawDataToMetadata(rawData) {
     };
 
 
-  return {
-    data: {
-        activities,
-        populationTypes,
-        permissions,
-        boats,
-    },
-    metadata,
-    computed
-};
+    return {
+        data: {
+            activities,
+            populationTypes,
+            permissions,
+            boats,
+        },
+        metadata,
+        computed
+    };
 }
 
 module.exports = {

@@ -1,7 +1,6 @@
 const mysql = require('mysql2/promise');
 const config = require('config');
 
-
 const pool = mysql.createPool(config.get('mysql'));
 
 async function connectToDatabase() {
@@ -14,7 +13,6 @@ async function connectToDatabase() {
         throw error;
     }
 }
-
 
 /**
  * Fetches all activities from the database.
@@ -74,30 +72,12 @@ async function getAllBoatActivities() {
     return links;
 }
 
-/**
- * Fetches all metadata required for application initialization.
- * This function uses smaller fetch functions and runs them in parallel.
- * @returns {Promise<Object>} An object containing arrays of activities, population types, and permissions.
- */
-async function fetchMetadataFromDB() {
-    try {
-       
-        const [activities, populationTypes, permissions, boats, boatActivities] = await Promise.all([
-            getAllActivities(),
-            getAllPopulationTypes(),
-            getAllPermissions(),
-            getAllBoats(),
-            getAllBoatActivities()
-        ]);
-    
-        return { activities, populationTypes, permissions, boats, boatActivities };
 
-    } catch (error) {
-        console.error("Error fetching metadata from DB:", error);
-        throw error;
-    }
-}
 module.exports = {
     connectToDatabase,
-    fetchMetadataFromDB
+    getAllActivities,
+    getAllPopulationTypes,
+    getAllPermissions,
+    getAllBoats,
+    getAllBoatActivities
 };
