@@ -34,9 +34,11 @@ const sailBookingsQuery = `
 `;
 
 const sailCheckQuery = `
-  SELECT id, actual_start_time, end_time 
-  FROM Sail 
-  WHERE id = ?
+  SELECT 
+    s.id, s.actual_start_time, s.end_time,ba.boat_id   
+  FROM Sail s
+  JOIN BoatActivity ba ON s.boat_activity_id = ba.id
+  WHERE s.id = ?
 `;
 
 const updateSailStartQuery = `
@@ -56,12 +58,41 @@ const updatedSailQuery = `
   WHERE s.id = ?
 `;
 
+const updateSailStatusQuery = (field) => `
+  UPDATE Sail 
+  SET ${field} = ?, updated_at = NOW()
+  WHERE id = ?
+`;
+
+const getSailTimingQuery = `
+  SELECT planned_start_time, actual_start_time 
+  FROM Sail 
+  WHERE id = ?
+`;
+
+const getNextSailQuery = `
+  SELECT * FROM Sail 
+  WHERE date = CURDATE()
+    AND boat_activity_id = (
+      SELECT boat_activity_id FROM Sail WHERE id = ?
+    )
+    AND id > ?
+  ORDER BY planned_start_time ASC
+  LIMIT 1
+`;
+
+
+
+
 module.exports = {
-    allBoatsQuery,
-    sailsForBoatTodayQuery,
-    sailBookingsQuery,
-    sailCheckQuery,
-    updateSailStartQuery,
-    updateSailEndQuery,
-    updatedSailQuery
+  allBoatsQuery,
+  sailsForBoatTodayQuery,
+  sailBookingsQuery,
+  sailCheckQuery,
+  updateSailStartQuery,
+  updateSailEndQuery,
+  updatedSailQuery,
+  updateSailStatusQuery,
+  getSailTimingQuery,
+  getNextSailQuery
 };
