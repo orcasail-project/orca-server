@@ -14,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/", router);
+app.use("/api", router);
 app.use('/api/sails', sailsRoutes);
 
 const port = config.get("port") || 3000;

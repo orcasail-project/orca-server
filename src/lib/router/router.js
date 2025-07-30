@@ -1,18 +1,28 @@
-
 const express = require('express');
 const router = express.Router();
 
+
+const metadataRouter = require('./metadata.router.js');
+const bookingRouter = require('./booking.router.js');
+const sailsRouter = require('./sails');
+const authRouter = require('./authRouter');
+
+
+router.use('/metadata', metadataRouter);
+router.use('/bookings', bookingRouter);
+router.use('/api/sails', sailsRouter);
+router.use('/auth', authRouter);
+
+
+
+// נתיב בסיסי לבדיקה
 router.get('/', (req, res) => {
-    res.send('Main API Router');
+  res.send('Main API Router is working!');
 });
 
-// הגדרת קבוע לנתיב /helloworld
-const HELLO_WORLD = "/helloworld";
-
-// ניתוב לדוגמה שמחזיר הודעה בפורמט JSON עם סטטוס 200
-router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
+// נתיב דוגמה
+router.get('/helloworld', (req, res, next) => {
   try {
-    req.metricsId = "helloWorld";
     const name = req.query.user || "";
     res.status(200).json({ message: "Hello IH world! " + name });
   } catch (err) {
@@ -21,18 +31,4 @@ router.route(HELLO_WORLD).get(async function helloWorld(req, res, next) {
 });
 
 
-const metadataRouter = require('./metadata.router');
-
-router.use('/metadata', metadataRouter);
-
-const sailsRouter = require('./sails');
-router.use('/api/sails', sailsRouter);
-
-
-
-const authRouter = require('./authRouter');
-
-router.use('/auth', authRouter);
-
 module.exports = router;
-
