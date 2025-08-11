@@ -1,8 +1,12 @@
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-// const jwt = require('jsonwebtoken');
-// const config = require('config');
+const config = require("config");
 const { registrationSchema, loginSchema } = require("../schemas/userSchema");
 const { getUserByEmail, createUser } = require("../storage/sql");
+
+const JWT_SECRET = "OrcaSailSecretKey03082025$!";
+const JWT_EXPIRES_IN = "1d";
+
 
 //create a new user - register function (url: /auth/register)
 const register = async (req, res) => {
@@ -48,7 +52,7 @@ const login = async (req, res) => {
     // בדיקה אם המשתמש קיים עם סוג המשתמש הנכון
     const user = await getUserByEmail(email, userType);
     if (!user) {
-      return res.status(401).json({ message: "המייל לא קיים" });
+      return res.status(401).json({ message: "מייל לא קיים" });
     }
 
     // בדיקת הסיסמה
@@ -69,9 +73,14 @@ const login = async (req, res) => {
       type: user.role_id,
     };
 
+    const token = jwt.sign(userResponse, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
+
     res.json({
       message: "התחברת בהצלחה",
       user: userResponse,
+      token,
     });
   } catch (err) {
     console.error("Login error:", err);

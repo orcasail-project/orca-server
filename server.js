@@ -6,6 +6,7 @@ const createTables = require('./src/lib/storage/createTables');
 const { initializeDatabasePool } = require('./src/lib/storage/sql');
 const router = require('./src/lib/router/router');
 const sailsRoutes = require('./src/lib/router/dashboardRouter');
+const skipperRoutes = require('./src/lib/router/skipperRouter');
 
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use("/", router);
 app.use("/api", router);
 app.use('/api/sails', sailsRoutes);
+app.use('/api/sails', skipperRoutes);
 
 const port = config.get("port") || 3000;
 
