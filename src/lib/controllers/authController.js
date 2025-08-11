@@ -7,6 +7,8 @@ const { getUserByEmail, createUser } = require("../storage/sql");
 const JWT_SECRET = "OrcaSailSecretKey03082025$!";
 const JWT_EXPIRES_IN = "1d";
 
+
+//create a new user - register function (url: /auth/register)
 const register = async (req, res) => {
   const { error, value } = registrationSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -17,7 +19,7 @@ const register = async (req, res) => {
     // בדיקה אם המשתמש כבר קיים
     const existing = await getUserByEmail(email);
     if (existing) {
-      return res.status(404).json({ message: "משתמש כבר קיים" });
+      return res.status(404).json({ message: "מייל לא ייחודי" });
     }
 
     // הצפנת סיסמה
@@ -39,6 +41,7 @@ const register = async (req, res) => {
   }
 };
 
+//exists user - login function (url: /auth/login)
 const login = async (req, res) => {
   const { error, value } = loginSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
@@ -49,7 +52,7 @@ const login = async (req, res) => {
     // בדיקה אם המשתמש קיים עם סוג המשתמש הנכון
     const user = await getUserByEmail(email, userType);
     if (!user) {
-      return res.status(401).json({ message: "כתובת המייל לא קיימת" });
+      return res.status(401).json({ message: "מייל לא קיים" });
     }
 
     // בדיקת הסיסמה
