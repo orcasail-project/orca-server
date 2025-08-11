@@ -25,8 +25,8 @@ async function fetchAllRawData() {
             activities,
             populationTypes,
             permissions,
-            roles,
-            boatActivities
+            boatActivities,
+            roles
         ] = await Promise.all([
             getAllBoatsToMataData(),
             getAllActivities(),
@@ -69,7 +69,7 @@ const getMetadata = async (req, res) => {
  * @returns {object} The fully structured metadata payload.
  */
 function transformRawDataToMetadata(rawData) {
-    const { activities, boats, boatActivities, populationTypes, permissions, roles } = rawData;
+    const { boats, activities, populationTypes, permissions, boatActivities, roles } = rawData;
 
     const metadata = {
         activity_prices: activities.reduce((acc, activity) => {
