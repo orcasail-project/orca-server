@@ -44,4 +44,27 @@ const registrationSchema = Joi.object({
   })
 });
 
-module.exports = { registrationSchema };
+const loginSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'האימייל אינו תקין',
+      'string.empty': 'שדה האימייל הוא חובה',
+      'any.required': 'שדה האימייל הוא חובה'
+    }),
+  password: Joi.string()
+    .min(6)
+    .required()
+    .messages({
+      'string.min': 'סיסמה חייבת להכיל לפחות 6 תווים',
+      'any.required': 'סיסמה היא שדה חובה'
+    }),
+  userType: Joi.number()
+    .required()
+    .messages({
+      'any.required': 'סוג משתמש הוא שדה חובה'
+    })
+});
+
+module.exports = { registrationSchema, loginSchema };
