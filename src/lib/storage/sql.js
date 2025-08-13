@@ -63,7 +63,7 @@ async function getAllPermissions() {
 }
 
 async function getAllBoats() {
-    const [boats] = await pool.query('SELECT id, name, id AS boat_key, is_active FROM Boat ORDER BY id');
+    const [boats] = await pool.query('SELECT id, name, id , is_active FROM Boat ORDER BY id');
     return boats;
 }
 
@@ -207,6 +207,20 @@ async function findSailsWithOccupancy(searchParams) {
 }
 
 
+
+
+// const getUserByEmailAndRole = async (email, roleId) => {
+//   try {
+//     const [rows] = await pool.query(
+//       `SELECT * FROM user WHERE email = ? AND role_id = ?`,
+//       [email, roleId]
+//     );
+//     return rows[0];
+//   } catch (err) {
+//     console.error('Error in getUserByEmailAndRole:', err);
+//     throw err;
+//   }
+// };
 
 
 module.exports = {
