@@ -130,10 +130,27 @@ async function updateSailStatus(sailId, newStatus, userId) {
     next_sail: nextSail
   };
 }
+async function getUpcomingSailsForBoat(boatId) {
+  const today = moment().format('YYYY-MM-DD');
+  
+  const sails = await query(sailsForBoatTodayQuery, [boatId, today]);
+
+  // לוגיקה לחישוב סטטוס והוספת הזמנות
+  for (let sail of sails) {
+    sail.bookings = await query(sailBookingsQuery, [sail.sail_id]);
+    sail.status = calculateSailStatus(sail);
+  }
+
+  // סינון כדי להחזיר רק הפלגות שטרם הושלמו
+  const upcoming = sails.filter(s => s.status !== 'completed');
+
+  return upcoming;
+}
 
 
 module.exports = {
   getCurrentSails,
   getNextSailsForToday,
-  updateSailStatus
+  updateSailStatus,
+  getUpcomingSailsForBoat,
 };

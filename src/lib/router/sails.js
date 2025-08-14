@@ -37,7 +37,7 @@ router.put('/updateStatus/:sailId', async (req, res) => {
   // אבל אסור להשאיר את זה ריק.
   const userId = req.user ? req.user.id : 1; // דוגמה: שימוש ב-1 אם אין משתמש מחובר
   // =======================================================
-  
+
   // הדפסה ללוג כדי לוודא שאנחנו מקבלים את כל הנתונים
   console.log(`[SERVER] Received update request for sailId: ${sailId} with status: ${status} by userId: ${userId}`);
 
@@ -46,7 +46,7 @@ router.put('/updateStatus/:sailId', async (req, res) => {
     console.error('[SERVER] Error: One of the parameters is undefined!', { sailId, status, userId });
     return res.status(400).json({ error: 'Invalid parameters provided to the server.' });
   }
-  
+
   try {
     // ודא שאתה מעביר את כל שלושת הארגומנטים!
     const result = await sailsService.updateSailStatus(sailId, status, userId);
@@ -57,5 +57,22 @@ router.put('/updateStatus/:sailId', async (req, res) => {
   }
 });
 
+router.get('/nextSail/:boatId', async (req, res) => {
+  try {
+    const { boatId } = req.params;
+    const today = moment().format('YYYY-MM-DD');
+
+    const upcomingSails = await sailsService.getUpcomingSailsForBoat(boatId);
+
+    res.status(200).json({ upcoming_sails: upcomingSails });
+
+  } catch (err) {
+    console.error(`Error in /nextSail/${req.params.boatId}:`, err.message);
+    if (err.message.includes('not found')) { // בדיקה בסיסית לסוג שגיאה
+      return res.status(404).json({ error: 'Boat not found' });
+    }
+    res.status(500).json({ error: 'Failed to fetch upcoming sails for the boat' });
+  }
+});
 
 module.exports = router;

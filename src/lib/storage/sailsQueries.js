@@ -50,13 +50,22 @@ const updateSailEndQuery = `
 `;
 
 const updatedSailQuery = `
-  SELECT s.*, pt.name AS population_type_name, a.name AS activity_name
+  SELECT 
+    s.*, 
+    pt.name AS population_type_name, 
+    a.name AS activity_name,
+    CASE
+      WHEN s.end_time IS NOT NULL THEN 'completed'
+      WHEN s.actual_start_time IS NOT NULL THEN 'in_progress'
+      ELSE 'pending'
+    END AS status
   FROM Sail s
   JOIN PopulationType pt ON s.population_type_id = pt.id
   JOIN BoatActivity ba ON s.boat_activity_id = ba.id
   JOIN Activity a ON ba.activity_id = a.id
   WHERE s.id = ?
 `;
+
 
 const updateSailStatusQuery = (field) => `
   UPDATE Sail 
