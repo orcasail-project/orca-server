@@ -4,8 +4,8 @@ const config = require("config");
 const { registrationSchema, loginSchema } = require("../schemas/userSchema");
 const { getUserByEmail, createUser } = require("../storage/sql");
 
-const JWT_SECRET = "OrcaSailSecretKey03082025$!";
-const JWT_EXPIRES_IN = "1d";
+const JWT_SECRET = process.env.JWT_SECRET || "OrcaSailSecretKey03082025$!";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 
 
 //create a new user - register function (url: /auth/register)

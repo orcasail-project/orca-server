@@ -205,7 +205,12 @@ async function getSailsDashboard(req, res) {
             }
         });
 
-        // 7. שלח את התגובה הסופית לקליינט
+        // 7. שלח את התגובה הסופית לקליינט עם headers למניעת caching
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
         res.status(200).json({
             sails_data: sails_data
         });

@@ -80,6 +80,12 @@ exports.getCurrentSails = async (req, res) => {
       }
     ];
 
+    // Set cache-control headers to prevent caching of real-time data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(currentSails);
   } catch (error) {
     console.error('Error fetching current sails:', error);
@@ -156,6 +162,12 @@ exports.getNextSails = async (req, res) => {
       }
     ];
 
+    // Set cache-control headers to prevent caching of real-time data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(nextSails);
   } catch (error) {
     console.error('Error fetching next sails:', error);
