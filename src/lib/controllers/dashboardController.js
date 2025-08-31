@@ -35,10 +35,85 @@ async function getSailsDashboard(req, res) {
         const { cycles, startTime, endTime } = getNextTimeCycles();
 
         // 2. שלוף את כל הנתונים הרלוונטיים
-        const [allBoats, flatSailsData] = await Promise.all([
+        let [allBoats, flatSailsData] = await Promise.all([
             sailsService.getAllBoats(),
             sailsService.getUpcomingSailsData(startTime, endTime)
         ]);
+
+        // Mock data for testing when database is empty
+        if (allBoats.length === 0) {
+            console.log("No boats in database, using mock data for testing");
+            allBoats = [
+                { id: 1, name: 'טיל כחול', is_active: true, gate_number: 'א' },
+                { id: 2, name: 'טייפון', is_active: true, gate_number: 'ב' },
+                { id: 3, name: 'טורפדו', is_active: true, gate_number: 'ד' },
+                { id: 4, name: 'לוי', is_active: false, gate_number: null },
+                { id: 5, name: 'קמיקזה', is_active: true, gate_number: 'ג' }
+            ];
+
+            // Create mock sails for the first two time cycles
+            const mockTime1 = new Date(startTime);
+            const mockTime2 = new Date(startTime.getTime() + 30 * 60 * 1000);
+            
+            flatSailsData = [
+                // Sail for boat 1 at first time slot
+                {
+                    boat_id: 1,
+                    sail_id: 101,
+                    planned_start_time: mockTime1,
+                    actual_start_time: null,
+                    population_type_id: 1,
+                    population_type_name: 'משפחות',
+                    sail_notes: 'שיוט בדיקה',
+                    requires_orca_escort: 0,
+                    is_private_group: 0,
+                    booking_id: 201,
+                    customer_id: 301,
+                    customer_name: 'ישראל ישראלי',
+                    customer_phone_number: '050-1234567',
+                    num_people_sail: 8,
+                    num_people_activity: 6,
+                    is_phone_booking: 1
+                },
+                {
+                    boat_id: 1,
+                    sail_id: 101,
+                    planned_start_time: mockTime1,
+                    actual_start_time: null,
+                    population_type_id: 1,
+                    population_type_name: 'משפחות',
+                    sail_notes: 'שיוט בדיקה',
+                    requires_orca_escort: 0,
+                    is_private_group: 0,
+                    booking_id: 202,
+                    customer_id: 302,
+                    customer_name: 'דוד כהן',
+                    customer_phone_number: '052-9876543',
+                    num_people_sail: 4,
+                    num_people_activity: 3,
+                    is_phone_booking: 0
+                },
+                // Sail for boat 2 at second time slot
+                {
+                    boat_id: 2,
+                    sail_id: 102,
+                    planned_start_time: mockTime2,
+                    actual_start_time: null,
+                    population_type_id: 2,
+                    population_type_name: 'נוער',
+                    sail_notes: 'קבוצת נוער',
+                    requires_orca_escort: 1,
+                    is_private_group: 1,
+                    booking_id: 203,
+                    customer_id: 303,
+                    customer_name: 'קבוצת נוער רמת גן',
+                    customer_phone_number: '03-1234567',
+                    num_people_sail: 25,
+                    num_people_activity: 20,
+                    is_phone_booking: 1
+                }
+            ];
+        }
 
         // 3. עבד את הנתונים השטוחים למבנה מקונן (sailsMap)
         const sailsMap = {};
@@ -130,7 +205,12 @@ async function getSailsDashboard(req, res) {
             }
         });
 
-        // 7. שלח את התגובה הסופית לקליינט
+        // 7. שלח את התגובה הסופית לקליינט עם headers למניעת caching
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
         res.status(200).json({
             sails_data: sails_data
         });
