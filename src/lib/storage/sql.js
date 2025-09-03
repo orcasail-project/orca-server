@@ -119,6 +119,20 @@ async function createUser(userData) {
     };
 }
 
+async function updateUserPassword(email, hashedPassword) {
+    console.log('updateUserPassword called with:', { email, hashedPasswordLength: hashedPassword?.length });
+    const sql = 'UPDATE User SET password = ? WHERE email = ?';
+    const [result] = await pool.execute(sql, [hashedPassword, email]);
+    console.log('Update result:', { affectedRows: result.affectedRows, changedRows: result.changedRows });
+    return result.affectedRows > 0;
+}
+
+async function updateUserDetails(email, userData) {
+    const sql = 'UPDATE User SET full_name = ?, phone = ? WHERE email = ?';
+    const [result] = await pool.execute(sql, [userData.fullName, userData.phone, email]);
+    return result.affectedRows > 0;
+}
+
 
 
 
@@ -239,6 +253,8 @@ module.exports = {
     // משתמשים
     getUserByEmail,
     createUser,
+    updateUserPassword,
+    updateUserDetails,
 
     // הפלגות
     getUpcomingSailsData,

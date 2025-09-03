@@ -9,5 +9,16 @@
     "connectionLimit": 10,
     "waitForConnections": true,
     "queueLimit": 0
+  },
+  "email": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "r0556747089@gmail.com",
+      "pass": "gvlt mczt auxl ibxt"
+    },
+    "from": "OrcaSail <r0556747089@gmail.com>",
+    "subject": "איפוס סיסמה - OrcaSail"
   }
 }
