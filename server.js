@@ -2,6 +2,7 @@ const express = require('express');
 const config = require('config');
 const cors = require('cors');
 const createTables = require('./src/lib/storage/createTables');
+console.log("<<<<< SERVER VERSION 1.1 RUNNING >>>>>"); // <--- הוסף את השורה הזו
 
 const { initializeDatabasePool } = require('./src/lib/storage/sql');
 const router = require('./src/lib/router/router');
