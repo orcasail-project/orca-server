@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const sailsService = require('../../services/sailsService');
 const moment = require('moment');
+module.exports = function(io) {
 
 router.get('/nextSail', async (req, res) => {
   try {
@@ -60,7 +61,7 @@ router.get('/nextSail/:boatId', async (req, res) => {
 
 router.post('/handleLateSails', async (req, res) => {
   try {
-    const handledSails = await sailsService.handleLatePhoneSailsAutomatically();
+    const handledSails = await sailsService.handleLatePhoneSailsAutomatically(io);
     res.status(200).json({ message: 'Late sails processed', handledSails });
   } catch (err) {
     console.error('Error handling late sails:', err);
@@ -92,4 +93,5 @@ router.get('/latePhoneReservations', async (req, res) => {
   }
 });
 
-module.exports = router;
+return router;
+};

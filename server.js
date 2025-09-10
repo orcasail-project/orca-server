@@ -1,48 +1,71 @@
 const express = require('express');
 const config = require('config');
 const cors = require('cors');
-const createTables = require('./src/lib/storage/createTables');
-console.log("<<<<< SERVER VERSION 1.1 RUNNING >>>>>"); // <--- הוסף את השורה הזו
-
+const http = require('http');
+const { Server } = require("socket.io");
 const { initializeDatabasePool } = require('./src/lib/storage/sql');
-const router = require('./src/lib/router/router');
-const sailsRoutes = require('./src/lib/router/dashboardRouter');
 
-const skipperRoutes = require('./src/lib/router/skipperRouter');
-
+// ייבוא פונקציות שיוצרות את הראוטרים
+const createMainRouter = require('./src/lib/router/router');
+const createDashboardRouter = require('./src/lib/router/dashboardRouter');
+const createSailsRouter = require('./src/lib/router/sails.js');
+const createSkipperRouter = require('./src/lib/router/skipperRouter');
 
 const app = express();
+const server = http.createServer(app);
 
+// יצירת שרת Socket.io והצמדתו לשרת ה-HTTP
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:8080", 
+    methods: ["GET", "POST"]
+  }
+});
+
+// הגדרת Middleware של Express
 app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
     console.log(` בקשה התקבלה: ${req.method} לכתובת ${req.originalUrl}`);
-    next(); // חשוב מאוד - ממשיך לבקשה הבאה
+    next();
 });
 
-app.use("/", router);
+//  יצירת הראוטרים והעברת io אליהם
+const mainRouter = createMainRouter(io);
+const dashboardRouter = createDashboardRouter(io);
+const sailsRouter = createSailsRouter(io);
+const skipperRouter = createSkipperRouter(io);
 
-app.use("/api", router);
-app.use('/api/sails', sailsRoutes); 
-app.use('/api/sails', skipperRoutes);
+app.use("/", mainRouter);
+app.use("/api", mainRouter);
+app.use('/api/sails', dashboardRouter); 
+app.use('/api/sails', sailsRouter); 
+app.use('/api/sails', skipperRouter);
 
+// הגדרת לוגיקת החיבור של Socket.io
+io.on('connection', (socket) => {
+  console.log(`[Socket.io] User connected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`[Socket.io] User disconnected: ${socket.id}`);
+  });
+});
+
+// הגדרת הפורט והפעלת השרת
 const port = config.get("port") || 3000;
 
 async function startServer() {
     try {
-
         await initializeDatabasePool();
-
-        app.listen(port, () => {
+        server.listen(port, () => {
             console.log(`Server running on port ${port}`);
         });
     } catch (error) {
-        console.error('Failed to connect to the database:', error.message);
-        console.error('Failed to initialize the database. Server is not starting.', error.message);
-
+        console.error('Failed to initialize the database:', error.message);
         process.exit(1);
     }
 }
 
 startServer();
+
+module.exports = { io };

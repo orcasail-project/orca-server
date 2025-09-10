@@ -5,7 +5,9 @@ const { authorizeManager } = require('../middleware/authorize');
 
 const sailsController = require('../controllers/dashboardController');
 
-const DASHBOARD= "/dashboard";
-router.get(DASHBOARD, authenticateToken, authorizeManager(), sailsController.getSailsDashboard);
+const DASHBOARD = "/dashboard";
+module.exports = function (io) {
+    router.get(DASHBOARD, authenticateToken, authorizeManager(), sailsController.getSailsDashboard);
 
-module.exports = router;
+    return router;
+};

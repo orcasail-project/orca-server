@@ -13,7 +13,7 @@ const {
   updateSailQuery,
   updateBookingSailIdQuery,
 } = require('../lib/storage/sailsQueries');
-const { calculateSailStatus, calculateBoatStatus } = require('./utils'); 
+const { calculateSailStatus, calculateBoatStatus } = require('./utils');
 async function getCurrentSails() {
   const today = moment().format('YYYY-MM-DD');
   const boats = await query(allBoatsQuery);
@@ -102,6 +102,7 @@ async function updateSailStatus(sailId, newStatus, userId) {
 
   const upcomingSails = await getUpcomingSailsForBoat(sail.boat_id);
   const nextSail = upcomingSails.find(s => s.sail_id !== updatedSail.sail_id);
+  broadcastSailsUpdate(); // <--- הוסף את השורה הזו כאן
 
   return {
     success: true,
@@ -135,12 +136,15 @@ async function getLatePhoneReservations() {
 
 
 async function handleLatePhoneSailsAutomatically() {
+  let changesWereMade = false;
   const lateSailsToProcess = await query(getLatePhoneSailsQuery);
   const handledSailIds = [];
   console.log(`[LateSailHandler] Found ${lateSailsToProcess.length} late sails to process via SQL query.`);
 
   for (const lateSail of lateSailsToProcess) {
     try {
+      handledSailIds.push(lateSail.sail_id);
+      changesWereMade = true;
       console.log(`[LateSailHandler] ==> Processing sail: ${lateSail.sail_id}`);
       const upcomingSails = await getUpcomingSailsForBoat(lateSail.boat_id);
       const nextSail = upcomingSails.find(s =>
@@ -168,6 +172,10 @@ async function handleLatePhoneSailsAutomatically() {
       console.error(`[LateSailHandler] !!! FAILED to process sail ${lateSail.sail_id} !!!`);
       console.error("[LateSailHandler] SQL Error:", error.message);
     }
+  }
+  if (changesWereMade && io) {
+    console.log('[Socket.io] Broadcasting "sails_updated" event after handling late sails.');
+    io.emit('sails_updated');
   }
   return handledSailIds;
 }
@@ -197,8 +205,22 @@ async function revertLateSail(originalLateSailId, userId) {
 
   // עדכון הסטטוס של השיוט המקורי חזרה ל'pending' וניקוי השדה transferred_to_sail_id
   await query(updateSailQuery, ['pending', null, originalLateSailId]);
+  broadcastSailsUpdate(); // <--- הוסף את השורה הזו כאן
 
   return { success: true, message: `Sail ${originalLateSailId} reverted successfully` };
+}
+function broadcastSailsUpdate() {
+  try {
+    const { io } = require('../../server'); // נטען את io כאן
+    if (io) {
+      console.log('[Socket.io] Broadcasting "sails_updated" event to all clients.');
+      io.emit('sails_updated');
+    } else {
+      console.error('[Socket.io] Error: io object is not available.');
+    }
+  } catch (err) {
+    console.error('[Socket.io] Failed to broadcast update:', err);
+  }
 }
 
 module.exports = {
