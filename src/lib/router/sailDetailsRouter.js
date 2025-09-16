@@ -4,14 +4,14 @@ const router = express.Router();
 const DetailsController = require('../controllers/sailDetailsController');
 
 console.log('7. [ראוטר שיוטים]: הקובץ נטען.');
-
+module.exports = function (io) {
 // const DETAILS= ":id";
 // router.get(DETAILS, DetailsController.getSailById);
 router.get('/:id', DetailsController.getSailById);
 console.log('8. [ראוטר שיוטים]: הנתיב GET /:id הוגדר.');
 
-module.exports = router;
-
+return router;
+};
 
 // const express = require('express');
 // const router = express.Router();
