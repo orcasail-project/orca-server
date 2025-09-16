@@ -1,14 +1,22 @@
 {
-  "port": 3000,
   "mysql": {
     "host": "localhost",
-    "user": "DEVALOPER",
-    "password": "OrcaDb123",
+    "user": "root",
+    "password": "your_password",
     "database": "orca_db",
-    "port": 3306,
-    "connectionLimit": 10,
-    "waitForConnections": true,
-    "queueLimit": 0,
     "timezone": "+00:00"
+  },
+  "server": {
+    "port": 3000
+  },
+  
+  "email": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false, 
+    "auth": {
+      "user": "your_email@gmail.com",
+      "pass": "your_app_password" 
+    }
   }
 }

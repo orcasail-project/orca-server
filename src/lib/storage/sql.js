@@ -1,6 +1,8 @@
 const mysql = require('mysql2/promise');
-const config = require('config');
-const mysqlConfig = config.get('mysql');
+// const config = require('config');
+// const mysqlConfig = config.get('mysql');
+const { mysqlConfig } = require('../../../config');
+
 let pool;
 
 /**
@@ -246,7 +248,7 @@ async function findSailsWithOccupancy(searchParams) {
         const timeBeforeStr = new Date(timeBefore).toTimeString().slice(0, 8);
         const timeAfterStr = new Date(timeAfter).toTimeString().slice(0, 8);
 
-      
+
         const sql = `
             SELECT 
                 s.id AS sail_id, 
