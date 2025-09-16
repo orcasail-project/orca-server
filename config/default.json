@@ -2,7 +2,7 @@
   "mysql": {
     "host": "localhost",
     "user": "root",
-    "password": "your_password",
+    "password": "s215114281",
     "database": "orca_db",
     "timezone": "+00:00"
   },

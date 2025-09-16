@@ -1,5 +1,5 @@
 const moment = require('moment');
-const { query } = require('../lib/storage/sql');
+const { query } = require('../storage/sql');
 const {
   sailsForBoatTodayQuery,
   allBoatsQuery,
@@ -12,8 +12,8 @@ const {
   getSailByIdQuery,
   updateSailQuery,
   updateBookingSailIdQuery,
-} = require('../lib/storage/sailsQueries');
-const { calculateSailStatus, calculateBoatStatus } = require('./utils');
+} = require('../storage/sailsQueries');
+const { calculateSailStatus, calculateBoatStatus } = require('../middleware/utils');
 async function getCurrentSails() {
   const today = moment().format('YYYY-MM-DD');
   const boats = await query(allBoatsQuery);
@@ -211,7 +211,7 @@ async function revertLateSail(originalLateSailId, userId) {
 }
 function broadcastSailsUpdate() {
   try {
-    const { io } = require('../../server'); // נטען את io כאן
+    const { io } = require('../../../server'); // נטען את io כאן
     if (io) {
       console.log('[Socket.io] Broadcasting "sails_updated" event to all clients.');
       io.emit('sails_updated');

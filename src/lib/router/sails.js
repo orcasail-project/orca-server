@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const sailsService = require('../../services/sailsService');
+const sailsService = require('../controllers/sailsService');
 const moment = require('moment');
 module.exports = function(io) {
 
