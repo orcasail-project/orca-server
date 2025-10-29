@@ -1,23 +1,56 @@
-const { checkAvailabilitySchema } = require('../schemas/booking.schema.js');
+const { checkAvailabilitySchema, addCustomerSchema, addOrderSchema } = require('../schemas/booking.schema.js');
 const { ZodError } = require('zod');
-const { findSailsWithOccupancy } = require('../storage/sql');
+const { findSailsWithOccupancy, getCustomerByPhoneNumber, addCustomer, insertNewBooking, findSailByDetails, createNewSail, createOrderInTransaction } = require('../storage/sql');
 
+//עזר
+// function isSailAvailable(sail, newBooking) {
+
+//     const activity_capacity = sail.activity_capacity ?? Infinity;
+
+//     const sail_capacity = sail.sail_capacity ?? Infinity;
+
+//     const free_places_activity = activity_capacity - sail.current_activity_occupancy;
+//     const free_places_sail = sail_capacity - sail.current_sail_occupancy;
+
+//     // console.log(`Checking sail ${sail.sail_id}: 
+//     //     Activity: ${activity_capacity} (capacity) - ${sail.current_activity_occupancy} (occupancy) >= ${newBooking.num_people_activity} (needed) -> ${free_places_activity >= newBooking.num_people_activity}
+//     //     Sail: ${sail_capacity} (capacity) - ${sail.current_sail_occupancy} (occupancy) >= ${newBooking.num_people_sail} (needed) -> ${free_places_sail >= newBooking.num_people_sail}`);
+//     // if (free_places_activity > free_places_sail)
+//     //     free_places_activity = free_places_sail;
+//     return free_places_activity >= newBooking.num_people_activity && free_places_sail >= newBooking.num_people_sail;
+// }
 
 
 function isSailAvailable(sail, newBooking) {
-
+    // ---- הגדרת משתנים ----
+    const sail_capacity = sail.sail_capacity ?? Infinity;
     const activity_capacity = sail.activity_capacity ?? Infinity;
 
-    const sail_capacity = sail.sail_capacity ?? Infinity;
+    const current_activity_occupancy = sail.current_activity_occupancy;
+    const current_sail_occupancy = sail.current_sail_occupancy;
+    const current_total_occupancy_on_boat = current_activity_occupancy + current_sail_occupancy;
 
-    const free_places_activity = activity_capacity - sail.current_activity_occupancy;
-    const free_places_sail = sail_capacity - sail.current_sail_occupancy;
+    const requested_activity = newBooking.num_people_activity;
+    const requested_sail = newBooking.num_people_sail;
+    const total_requested = requested_activity + requested_sail;
 
-    console.log(`Checking sail ${sail.sail_id}: 
-        Activity: ${activity_capacity} (capacity) - ${sail.current_activity_occupancy} (occupancy) >= ${newBooking.num_people_activity} (needed) -> ${free_places_activity >= newBooking.num_people_activity}
-        Sail: ${sail_capacity} (capacity) - ${sail.current_sail_occupancy} (occupancy) >= ${newBooking.num_people_sail} (needed) -> ${free_places_sail >= newBooking.num_people_sail}`);
+    // ---- בדיקת התנאים ----
 
-    return free_places_activity >= newBooking.num_people_activity && free_places_sail >= newBooking.num_people_sail;
+    // תנאי 1: האם התפוסה העתידית בפעילות חורגת מקיבולת הפעילות?
+    const future_activity_occupancy = current_activity_occupancy + requested_activity;
+    const is_activity_ok = future_activity_occupancy <= activity_capacity;
+
+    // תנאי 2: האם התפוסה העתידית בסירה חורגת מקיבולת הסירה?
+    const future_total_occupancy_on_boat = current_total_occupancy_on_boat + total_requested;
+    const is_sail_ok = future_total_occupancy_on_boat <= sail_capacity;
+
+    // הדפסה לדיבוג נשארת שימושית לבדיקות
+    console.log(`Checking sail ${sail.sail_id}:
+        - Activity Check: Future occupancy (${future_activity_occupancy}) <= Capacity (${activity_capacity}) -> ${is_activity_ok}
+        - Boat Check: Future occupancy (${future_total_occupancy_on_boat}) <= Capacity (${sail_capacity}) -> ${is_sail_ok}`);
+
+    // ההזמנה תקינה רק אם שני התנאים מתקיימים
+    return is_activity_ok && is_sail_ok;
 }
 
 const checkAvailability = async (req, res, next) => {
@@ -35,23 +68,28 @@ const checkAvailability = async (req, res, next) => {
 
         // אם אין שום שיוט זמין אחרי סינון, תשובה ריקה
         if (availableSails.length === 0) {
-            console.log("4. No available sails found after filtering. Exiting.");
             return res.status(200).json({ exactMatch: null, halfHourBefore: [], halfHourAfter: [] });
         }
 
-        // שלב 3: יישום החוק העסקי - "התאמה מדויקת תחילה
+        // שלב 3: חיפוש שיוטים שמתאימים בדיוק לשעה המבוקשת
         const exactMatchSail = availableSails.find(
             sail => sail.planned_start_time.slice(0, 5) === searchParams.time
         );
 
+        const mapSailToResponse = (sail) => ({
+            cruiseId: sail.sail_id,
+            time: sail.planned_start_time.slice(0, 5),
+            activityType: sail.activity_name,
+            populationType: sail.population_type_name,
+            available_sail_seats: sail.available_sail_seats,
+            available_activity_seats: sail.available_activity_seats,
+            current_sail_occupancy: sail.current_sail_occupancy,
+            current_activity_occupancy: sail.current_activity_occupancy
+        });
+
         if (exactMatchSail) {
             const response = {
-                exactMatch: {
-                    cruiseId: exactMatchSail.sail_id,
-                    time: exactMatchSail.planned_start_time.slice(0, 5),
-                    activityType: exactMatchSail.activity_name,
-                    populationType: exactMatchSail.population_type_name,
-                },
+                exactMatch: mapSailToResponse(exactMatchSail),
                 halfHourBefore: [],
                 halfHourAfter: [],
             };
@@ -61,21 +99,11 @@ const checkAvailability = async (req, res, next) => {
 
         const beforeSails = availableSails
             .filter(sail => sail.planned_start_time.slice(0, 5) < searchParams.time)
-            .map(sail => ({
-                cruiseId: sail.sail_id,
-                time: sail.planned_start_time.slice(0, 5),
-                activityType: sail.activity_name,
-                populationType: sail.population_type_name,
-            }));
+            .map(mapSailToResponse);
 
         const afterSails = availableSails
             .filter(sail => sail.planned_start_time.slice(0, 5) > searchParams.time)
-            .map(sail => ({
-                cruiseId: sail.sail_id,
-                time: sail.planned_start_time.slice(0, 5),
-                activityType: sail.activity_name,
-                populationType: sail.population_type_name,
-            }));
+            .map(mapSailToResponse);
 
         const response = {
             exactMatch: null,
@@ -93,6 +121,242 @@ const checkAvailability = async (req, res, next) => {
     }
 };
 
+const checkExistingCustomer = async (req, res) => {
+    const { phoneNumber } = req.query;
+
+    if (!phoneNumber) {
+        return res.status(400).json({ message: "The 'phoneNumber' query parameter is required." });
+    }
+
+    try {
+        const customer = await getCustomerByPhoneNumber(phoneNumber);
+
+        if (customer) {
+            const response = {
+                customer_id: customer.id.toString(),
+                name: customer.name,
+                phone_number: customer.phone_number,
+                email: customer.email,
+                whatsApp: customer.wants_whatsapp == 0 ? false : true,
+                notes: customer.notes
+            };
+
+            res.status(200).json(response);
+        } else {
+            res.status(404).json({ message: `Customer with phone number ${phoneNumber} not found.` });
+        }
+    } catch (error) {
+        console.error("Error in checkExistingCustomer:", error);
+        res.status(500).json({ message: "Internal Server Error." });
+    }
+}
+
+
+
+const addNewCustomer = async (req, res) => {
+    try {
+
+        const { body: validatedData } = addCustomerSchema.parse({
+            body: req.body
+        });
+
+
+        const result = await addCustomer(validatedData);
+
+        return res.status(201).json({
+            message: 'Customer added successfully',
+            customerId: result.insertId
+        });
+
+    } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                message: 'Invalid input data',
+                errors: error.flatten().fieldErrors
+            });
+        }
+
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({
+                message: `A customer with the provided phone number already exists.`
+            });
+        }
+
+        console.error('Error in addCustomer controller:', error);
+        return res.status(500).json({
+            message: 'An internal server error occurred.'
+        });
+    }
+};
+
+
+
+// const addNewOrder = async (req, res) => {
+//     try {
+//         const { body: validatedData } = addOrderSchema.parse({
+//             body: req.body
+//         });
+
+//         const {
+//             customer,
+//             payment,
+//             num_people_activity,
+//             num_people_sail,
+//             is_phone_booking,
+//             up_to_16_year
+//         } = validatedData;
+
+//         let sailId;
+
+//         if ('cruiseId' in validatedData) {
+//             sailId = validatedData.cruiseId;
+//         } else {
+//             const {
+//                 sailDate,
+//                 planned_start_time,
+//                 population_type_id,
+//                 is_private_group,
+//                 requires_orca_escort,
+//                 activityId,
+//                 boatId // נניח שזה יגיע בעתיד
+//             } = validatedData;
+
+//             const existingSailId = await findSailByDetails({
+//                 date: sailDate,
+//                 startTime: planned_start_time,
+//                 populationTypeId: population_type_id
+//             });
+
+//             if (existingSailId) {
+//                 sailId = existingSailId;
+//             } else {
+//                 // נניח שיש לנו פונקציה למצוא את boat_activity_id
+//                 // const boat_activity_id = await findBoatActivityId(boatId, activityId);
+//                 // if (!boat_activity_id) { ... }
+
+//                 // כרגע נשתמש בערך קבוע לבדיקה
+//                 const boat_activity_id = 1;
+
+//                 // --- בניית newSailData עם שמות snake_case בלבד ---
+//                 const newSailData = {
+//                     date: sailDate,
+//                     planned_start_time,
+//                     population_type_id,
+//                     is_private_group,
+//                     requires_orca_escort,
+//                     boat_activity_id
+//                 };
+
+//                 const newSailResult = await createNewSail(newSailData);
+//                 sailId = newSailResult.insertId;
+//             }
+//         }
+
+//         let customerId;
+//         const existingCustomer = await getCustomerByPhoneNumber(customer.phone_number);
+//         if (existingCustomer) {
+//             customerId = existingCustomer.id;
+//         } else {
+//             const newCustomerResult = await addCustomer(customer);
+//             customerId = newCustomerResult.insertId;
+//         }
+
+//         const bookingToInsert = {
+//             sail_id: sailId,
+//             customer_id: customerId,
+//             num_people_sail: num_people_sail || 0,
+//             num_people_activity: num_people_activity || 0,
+//             final_price: payment.final_price,
+//             payment_type_id: payment.payment_type_id,
+//             is_phone_booking: is_phone_booking || false,
+//             notes: customer.notes || null,
+//             up_to_16_year: up_to_16_year || false
+//         };
+
+//         const result = await insertNewBooking(bookingToInsert);
+
+//         return res.status(201).json({
+//             message: 'Order added successfully',
+//             orderId: result.insertId
+//         });
+
+//     } catch (error) {
+//         if (error instanceof ZodError) {
+//             return res.status(400).json({
+//                 message: 'Invalid input data',
+//                 errors: error.flatten().fieldErrors
+//             });
+//         }
+//         if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+//             return res.status(404).json({
+//                 message: 'Referenced entity not found...',
+//                 errorDetails: error.sqlMessage
+//             });
+//         }
+//         console.error('Error in addNewOrder controller:', error);
+//         return res.status(500).json({ message: 'An internal server error occurred.' });
+//     }
+// };
+
+const addNewOrder = async (req, res) => {
+    try {
+
+        const { body: validatedData } = addOrderSchema.parse({
+            body: req.body
+        });
+
+        const result = await createOrderInTransaction(validatedData);
+
+        return res.status(201).json({
+            message: 'Order added successfully',
+            orderId: result.insertId
+        });
+
+    } catch (error) {
+
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                message: 'Invalid input data',
+                errors: error.flatten().fieldErrors
+            });
+        }
+        if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+            return res.status(404).json({
+                message: 'Referenced entity not found (e.g., paymentTypeId is invalid).',
+                errorDetails: error.sqlMessage
+            });
+        }
+
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({
+                message: 'A customer with the provided phone number already exists.'
+            });
+        }
+
+        if (error.code === 'INVALID_BOAT_ACTIVITY_COMBO') {
+            return res.status(400).json({
+                message: 'Invalid input data',
+                errors: { _form: [error.message] }
+            });
+        }
+
+        if (error.code === 'INSUFFICIENT_SEATS') {
+            return res.status(409).json({
+                message: error.message,
+                details: error.details
+            });
+        }
+        if (error.code === 'SAIL_NOT_FOUND') {
+            return res.status(404).json({ message: error.message });
+        }
+
+        console.error('Error in addNewOrder controller:', error);
+        return res.status(500).json({ message: 'An internal server error occurred.' });
+    }
+};
 module.exports = {
     checkAvailability,
+    checkExistingCustomer,
+    addNewCustomer,
+    addNewOrder
 };

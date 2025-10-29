@@ -1,22 +1,25 @@
 {
-  "mysql": {
-    "host": "localhost",
-    "user": "root",
-    "password": "s215114281",
-    "database": "orca_db",
-    "timezone": "+00:00"
-  },
   "server": {
     "port": 3000
   },
-  
+  "mysql": {
+    "host": "localhost",
+    "user": "DEVALOPER", 
+    "password": "OrcaDb123", 
+    "database": "orca_db",
+    "port": 3306,
+    "connectionLimit": 10,
+    "waitForConnections": true,
+    "queueLimit": 0,
+    "timezone": "+00:00" 
+  },
   "email": {
     "host": "smtp.gmail.com",
     "port": 587,
-    "secure": false, 
+    "secure": false,
     "auth": {
       "user": "your_email@gmail.com",
-      "pass": "your_app_password" 
+      "pass": "your_app_password"
     }
   }
 }

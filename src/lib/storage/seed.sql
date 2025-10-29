@@ -24,10 +24,15 @@ INSERT INTO role (role_id, name) VALUES
 
 
 -- הוספת הרשאות
-INSERT INTO Permission (name, can_assign, can_change_status, notes) VALUES
-('מנהל', TRUE, TRUE, NULL),         
-('סקיפר', TRUE, FALSE, NULL),      
-('עובד משרד', TRUE, TRUE, NULL);    
+-- INSERT INTO Permission (name, can_assign, can_change_status, notes) VALUES
+-- ('מנהל', TRUE, TRUE, NULL),         
+-- ('סקיפר', TRUE, FALSE, NULL),      
+-- ('עובד משרד', TRUE, TRUE, NULL);    
+
+INSERT INTO Permission (role_id, name, can_assign, can_change_status, notes) VALUES
+(1, 'מנהל', TRUE, TRUE, NULL),         -- מקשרים למנהל
+(2, 'סקיפר', TRUE, FALSE, NULL),      -- מקשרים לסקיפר
+(3, 'עובד משרד', TRUE, TRUE, NULL);    
 
 
 -- הוספת סוגי תשלום

@@ -1,3 +1,42 @@
+// const express = require('express');
+// const config = require('config');
+// const cors = require('cors');
+// const createTables = require('./src/lib/storage/createTables');
+
+// const { initializeDatabasePool } = require('./src/lib/storage/sql');
+// const router = require('./src/lib/router/router');
+// const sailsRoutes = require('./src/lib/router/dashboardRouter');
+
+
+// const app = express();
+
+// app.use(cors());
+// app.use(express.json());
+
+// app.use("/", router);
+// app.use("/api", router);
+// app.use('/api/sails', sailsRoutes);
+
+// const port = config.get("port") || 3000;
+
+// async function startServer() {
+//     try {
+
+//         await initializeDatabasePool();
+
+//         app.listen(port, () => {
+//             console.log(`Server running on port ${port}`);
+//         });
+//     } catch (error) {
+//         console.error('Failed to connect to the database:', error.message);
+//         console.error('Failed to initialize the database. Server is not starting.', error.message);
+
+//         process.exit(1);
+//     }
+// }
+
+// startServer();
+
 const { serverConfig } = require('./config');
 
 const express = require('express');
@@ -30,15 +69,11 @@ app.use((req, res, next) => {
 });
 
 const mainRouter = createMainRouter(io);
-const dashboardRouter = createDashboardRouter(io);
-const sailsRouter = createSailsRouter(io);
-const skipperRouter = createSkipperRouter(io);
+
 
 app.use("/", mainRouter);
 app.use("/api", mainRouter);
-app.use('/api/sails', dashboardRouter);
-app.use('/api/sails', sailsRouter);
-app.use('/api/sails', skipperRouter);
+
 
 io.on('connection', (socket) => {
   console.log(`[Socket.io] User connected: ${socket.id}`);

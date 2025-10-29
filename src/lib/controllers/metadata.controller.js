@@ -1,31 +1,27 @@
 // File: src/lib/controllers/metadata.controller.js
 
-// שלב 1: איחוד כל ה-imports הנחוצים משני הענפים
 const {
-    getAllBoatsToMataData, // מביא את הנתונים הנכונים לעיבוד (עם max_passengers)
+    getAllBoatsToMataData,
     getAllActivities,
-    getAllBoatActivities, // נתון חדש וחשוב מ-add-metadata
+    getAllBoatActivities,
     getAllPermissions,
     getAllPopulationTypes,
-    getAllRoles, // נתון חשוב שהיה ב-HEAD
+    getAllPaymentTypes,
+    getAllRoles,
 } = require('../storage/sql');
 
 
-/**
- * שלב 2: שימוש בפונקציית העזר מ-HEAD, אך עם כל הנתונים החדשים
- * Fetches all metadata required for application initialization.
- * This function uses smaller fetch functions and runs them in parallel.
- * @returns {Promise<Object>} An object containing all the raw data arrays.
- */
+
 async function fetchAllRawData() {
     try {
-        // Promise.all שיביא את כל המידע שצריך לעיבוד
+
         const [
             boats,
             activities,
             populationTypes,
             permissions,
             boatActivities,
+            paymentTypes,
             roles
         ] = await Promise.all([
             getAllBoatsToMataData(),
@@ -33,20 +29,27 @@ async function fetchAllRawData() {
             getAllPopulationTypes(),
             getAllPermissions(),
             getAllBoatActivities(),
+            getAllPaymentTypes(),
             getAllRoles()
         ]);
 
-        return { boats, activities, populationTypes, permissions, boatActivities, roles };
+
+        return {
+            boats,
+            activities,
+            populationTypes,
+            permissions,
+            boatActivities,
+            paymentTypes,
+            roles
+        };
     } catch (error) {
         console.error("Error fetching all raw data from DB:", error);
         throw error;
     }
 }
 
-/**
- * Endpoint to get all application metadata.
- * Fetches raw data from the DB, transforms it, and sends a structured object to the client.
- */
+
 const getMetadata = async (req, res) => {
     try {
 
@@ -63,19 +66,28 @@ const getMetadata = async (req, res) => {
 };
 
 
-/**
- * Transforms raw database arrays into a structured metadata object as required by the client specification.
- * @param {object} rawData - The raw data from the database.
- * @returns {object} The fully structured metadata payload.
- */
+
 function transformRawDataToMetadata(rawData) {
-    const { boats, activities, populationTypes, permissions, boatActivities, roles } = rawData;
+    const { activities, boats, boatActivities, populationTypes, permissions, paymentTypes, roles } = rawData;
+
+    const boatOnlyActivity = activities.find(act => act.name === 'סירה');
+
+   
+    const boatPassengerPrice = boatOnlyActivity ? boatOnlyActivity.ticket_price : 0;
+    if (boatOnlyActivity === undefined) {
+        console.warn("Metadata warning: Activity with name 'סירה' not found. Boat passenger price will be 0.");
+    }
+
 
     const metadata = {
+
+
         activity_prices: activities.reduce((acc, activity) => {
             acc[activity.name] = activity.ticket_price;
             return acc;
         }, {}),
+
+        boat_passenger_price: boatPassengerPrice,
 
         boat_capacity: boats.reduce((acc, boat) => {
             acc[boat.name] = boat.max_passengers;
@@ -150,6 +162,7 @@ function transformRawDataToMetadata(rawData) {
             populationTypes,
             permissions,
             boats,
+            paymentTypes,
             roles
         },
         metadata,
