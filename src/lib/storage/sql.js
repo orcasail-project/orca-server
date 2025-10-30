@@ -200,6 +200,93 @@ async function findBoatActivityId(boatId, activityId, connection) {
 
 // --- פונקציית-על לניהול טרנזקציית יצירת הזמנה ---
 
+// async function createOrderInTransaction(orderData) {
+//     const connection = await pool.getConnection();
+//     await connection.beginTransaction();
+
+//     try {
+//         const {
+//             customer,
+//             payment,
+//             num_people_activity,
+//             num_people_sail,
+//             is_phone_booking,
+//             up_to_16_year
+//         } = orderData;
+
+
+//         let sailId;
+//         if ('cruiseId' in orderData) {
+//             sailId = orderData.cruiseId;
+//         } else {
+//             const sailDetails = {
+//                 date: orderData.sailDate,
+//                 startTime: orderData.planned_start_time,
+//                 populationTypeId: orderData.population_type_id
+//             };
+//             const existingSailId = await findSailByDetails(sailDetails, connection);
+//             if (existingSailId) {
+//                 sailId = existingSailId;
+//             } else {
+//                 const boatActivityId = await findBoatActivityId(orderData.boatId, orderData.activityId, connection);
+
+//                 if (!boatActivityId) {
+//                     const error = new Error('This boat cannot perform the selected activity.');
+//                     error.code = 'INVALID_BOAT_ACTIVITY_COMBO';
+//                     throw error;
+//                 }
+//                 const newSailData = {
+//                     date: orderData.sailDate,
+//                     planned_start_time: orderData.planned_start_time,
+//                     population_type_id: orderData.population_type_id,
+//                     is_private_group: orderData.is_private_group,
+//                     requires_orca_escort: orderData.requires_orca_escort,
+//                     boat_activity_id: boatActivityId
+//                 };
+//                 const newSailResult = await createNewSail(newSailData, connection);
+//                 sailId = newSailResult.insertId;
+//             }
+//         }
+
+//         await checkAvailabilityAndLock(sailId, num_people_activity, num_people_sail, connection);
+
+
+//         // לוגיקת יצירת לקוח (אם נדרש)
+//         let customerId;
+//         const existingCustomer = await getCustomerByPhoneNumber(customer.phone_number, connection);
+//         if (existingCustomer) {
+//             customerId = existingCustomer.id;
+//         } else {
+//             const newCustomerResult = await addCustomer(customer, connection);
+//             customerId = newCustomerResult.insertId;
+//         }
+
+//         // יצירת ההזמנה
+//         const bookingToInsert = {
+//             sail_id: sailId,
+//             customer_id: customerId,
+//             num_people_sail: num_people_sail || 0,
+//             num_people_activity: num_people_activity || 0,
+//             final_price: payment.final_price,
+//             payment_type_id: payment.payment_type_id,
+//             is_phone_booking: is_phone_booking || false,
+//             notes: customer.notes || null,
+//             up_to_16_year: up_to_16_year || false
+//         };
+//         const result = await insertNewBooking(bookingToInsert, connection);
+
+//         await connection.commit();
+//         return result;
+
+//     } catch (error) {
+//         await connection.rollback();
+//         throw error;
+//     } finally {
+//         connection.release();
+//     }
+// }
+
+
 async function createOrderInTransaction(orderData) {
     const connection = await pool.getConnection();
     await connection.beginTransaction();
@@ -214,54 +301,68 @@ async function createOrderInTransaction(orderData) {
             up_to_16_year
         } = orderData;
 
-
         let sailId;
         if ('cruiseId' in orderData) {
+            // אם סופק מזהה שיוט, השתמש בו
             sailId = orderData.cruiseId;
         } else {
-            const sailDetails = {
-                date: orderData.sailDate,
-                startTime: orderData.planned_start_time,
-                populationTypeId: orderData.population_type_id
-            };
-            const existingSailId = await findSailByDetails(sailDetails, connection);
-            if (existingSailId) {
-                sailId = existingSailId;
-            } else {
-                const boatActivityId = await findBoatActivityId(orderData.boatId, orderData.activityId, connection);
+            // אם לא סופק מזהה, צור שיוט חדש ללא שאלות
+            const boatActivityId = await findBoatActivityId(orderData.boatId, orderData.activityId, connection);
 
-                if (!boatActivityId) {
-                    const error = new Error('This boat cannot perform the selected activity.');
-                    error.code = 'INVALID_BOAT_ACTIVITY_COMBO';
-                    throw error;
-                }
-                const newSailData = {
-                    date: orderData.sailDate,
-                    planned_start_time: orderData.planned_start_time,
-                    population_type_id: orderData.population_type_id,
-                    is_private_group: orderData.is_private_group,
-                    requires_orca_escort: orderData.requires_orca_escort,
-                    boat_activity_id: boatActivityId
-                };
-                const newSailResult = await createNewSail(newSailData, connection);
-                sailId = newSailResult.insertId;
+            if (!boatActivityId) {
+                const error = new Error('This boat cannot perform the selected activity.');
+                error.code = 'INVALID_BOAT_ACTIVITY_COMBO';
+                throw error;
             }
+
+            const newSailData = {
+                date: orderData.sailDate,
+                planned_start_time: orderData.planned_start_time,
+                population_type_id: orderData.population_type_id,
+                is_private_group: orderData.is_private_group,
+                requires_orca_escort: orderData.requires_orca_escort,
+                boat_activity_id: boatActivityId
+            };
+
+            const newSailResult = await createNewSail(newSailData, connection);
+            sailId = newSailResult.insertId;
         }
 
+        // מכאן והלאה, הקוד זהה ומניח שיש לנו sailId תקין
         await checkAvailabilityAndLock(sailId, num_people_activity, num_people_sail, connection);
 
+        // let customerId;
+        // const existingCustomer = await getCustomerByPhoneNumber(customer.phone_number, connection);
+        // if (existingCustomer) {
+        //     customerId = existingCustomer.id;
+        // } else {
+        //     const newCustomerResult = await addCustomer(customer, connection);
+        //     customerId = newCustomerResult.insertId;
+        // }
 
-        // לוגיקת יצירת לקוח (אם נדרש)
         let customerId;
         const existingCustomer = await getCustomerByPhoneNumber(customer.phone_number, connection);
+
         if (existingCustomer) {
             customerId = existingCustomer.id;
+
+            // בדיקה אם הפרטים שהגיעו מהקליינט שונים מהפרטים ב-DB
+            const detailsChanged =
+                existingCustomer.name !== customer.name ||
+                existingCustomer.email !== customer.email ||
+                Boolean(existingCustomer.wants_whatsapp) !== customer.wants_whatsapp ||
+                existingCustomer.notes !== customer.notes;
+
+            if (detailsChanged) {
+                // אם יש שינוי, בצע עדכון
+                await updateCustomer(customerId, customer, connection);
+            }
         } else {
+            // אם הלקוח לא קיים, צור אותו
             const newCustomerResult = await addCustomer(customer, connection);
             customerId = newCustomerResult.insertId;
         }
 
-        // יצירת ההזמנה
         const bookingToInsert = {
             sail_id: sailId,
             customer_id: customerId,
@@ -302,7 +403,7 @@ async function checkAvailabilityAndLock(sailId, numPeopleActivity, numPeopleSail
     const sql = `
        
         SELECT 
-            b.max_passengers AS sail_capacity,
+            (b.max_passengers - IF(s.requires_orca_escort, 1, 0)) AS sail_capacity,
             a.max_people_total AS activity_capacity,
             COALESCE(SUM(bk.num_people_activity), 0) AS current_activity_occupancy,
             COALESCE(SUM(bk.num_people_sail), 0) AS current_sail_occupancy
@@ -325,7 +426,9 @@ async function checkAvailabilityAndLock(sailId, numPeopleActivity, numPeopleSail
     }
 
     const availableActivitySeats = (status.activity_capacity ?? Infinity) - status.current_activity_occupancy;
-    const availableSailSeats = (status.sail_capacity ?? Infinity) - status.current_sail_occupancy;
+    // const availableSailSeats = (status.sail_capacity ?? Infinity) - status.current_sail_occupancy;
+    const totalCurrentOccupancy = status.current_sail_occupancy + status.current_activity_occupancy;
+    const availableSailSeats = (status.sail_capacity ?? Infinity) - totalCurrentOccupancy;
 
     if (availableActivitySeats < numPeopleActivity || availableSailSeats < numPeopleSail) {
         const error = new Error('Not enough space available on this sail.');
@@ -408,48 +511,32 @@ async function findSailsWithOccupancy(searchParams) {
     const timeBeforeStr = new Date(timeBefore).toTimeString().slice(0, 8);
     const timeAfterStr = new Date(timeAfter).toTimeString().slice(0, 8);
 
-    //     const sql = `
-    //         SELECT 
-    //             s.id AS sail_id, s.planned_start_time, b.max_passengers AS sail_capacity,
-    //             a.max_people_total AS activity_capacity, a.name AS activity_name, pt.name AS population_type_name,
-    //             COALESCE(SUM(bk.num_people_activity), 0) AS current_activity_occupancy,
-    //             COALESCE(SUM(bk.num_people_sail), 0) AS current_sail_occupancy
-    //         FROM Sail AS s
-    //         JOIN BoatActivity AS ba ON s.boat_activity_id = ba.id
-    //         JOIN Activity AS a ON ba.activity_id = a.id
-    //         JOIN Boat AS b ON ba.boat_id = b.id
-    //         JOIN PopulationType AS pt ON s.population_type_id = pt.id
-    //         LEFT JOIN Booking AS bk ON s.id = bk.sail_id
-    //         WHERE 
-    //             s.date = ? AND s.population_type_id = ? AND a.id = ? AND s.planned_start_time BETWEEN ? AND ?
-    //         GROUP BY s.id, s.planned_start_time, b.max_passengers, a.max_people_total, a.name, pt.name;
-    //     `;
-    //     return await query(sql, [date, population_type_id, activity_id, timeBeforeStr, timeAfterStr]);
     const sql = `
-            SELECT 
-                s.id AS sail_id, 
-                s.planned_start_time,
-                b.max_passengers AS sail_capacity,
-                a.max_people_total AS activity_capacity,
-                a.name AS activity_name,
-                pt.name AS population_type_name,
-                COALESCE(SUM(bk.num_people_activity), 0) AS current_activity_occupancy,
-                COALESCE(SUM(bk.num_people_sail), 0) AS current_sail_occupancy,
-                (b.max_passengers - COALESCE(SUM(bk.num_people_sail), 0)) AS available_sail_seats,
-                (IFNULL(a.max_people_total, 999) - COALESCE(SUM(bk.num_people_activity), 0)) AS available_activity_seats
-            FROM Sail AS s
-            JOIN BoatActivity AS ba ON s.boat_activity_id = ba.id
-            JOIN Activity AS a ON ba.activity_id = a.id
-            JOIN Boat AS b ON ba.boat_id = b.id
-            JOIN PopulationType AS pt ON s.population_type_id = pt.id
-            LEFT JOIN Booking AS bk ON s.id = bk.sail_id
-            WHERE 
-                s.date = ? 
-              AND s.population_type_id = ? 
-              AND a.id = ? 
-              AND s.planned_start_time BETWEEN ? AND ?
-            GROUP BY s.id, s.planned_start_time, b.max_passengers, a.max_people_total, a.name, pt.name;
-        `;
+        SELECT 
+            s.id AS sail_id, 
+            s.planned_start_time,
+           (b.max_passengers - IF(s.requires_orca_escort, 1, 0)) AS sail_capacity,
+            a.max_people_total AS activity_capacity,
+            a.name AS activity_name,
+            pt.name AS population_type_name,
+            COALESCE(SUM(bk.num_people_activity), 0) AS current_activity_occupancy,
+            COALESCE(SUM(bk.num_people_sail), 0) AS current_sail_occupancy,
+            ((b.max_passengers - IF(s.requires_orca_escort, 1, 0)) - (COALESCE(SUM(bk.num_people_sail), 0) + COALESCE(SUM(bk.num_people_activity), 0))) AS available_sail_seats,
+            (IFNULL(a.max_people_total, 999) - COALESCE(SUM(bk.num_people_activity), 0)) AS available_activity_seats
+        FROM Sail AS s
+        JOIN BoatActivity AS ba ON s.boat_activity_id = ba.id
+        JOIN Activity AS a ON ba.activity_id = a.id
+        JOIN Boat AS b ON ba.boat_id = b.id
+        JOIN PopulationType AS pt ON s.population_type_id = pt.id
+        LEFT JOIN Booking AS bk ON s.id = bk.sail_id
+        WHERE 
+            s.date = ? 
+          AND s.population_type_id = ? 
+          AND a.id = ? 
+          AND s.planned_start_time BETWEEN ? AND ?
+        GROUP BY s.id, s.planned_start_time, b.max_passengers, a.max_people_total, a.name, pt.name;
+    `;
+
 
     const [sailsFromDb] = await pool.query(sql, [date, population_type_id, activity_id, timeBeforeStr, timeAfterStr]);
     const sails = sailsFromDb.map(sail => ({
@@ -514,6 +601,22 @@ async function getBookingsBySailId(sailId) {
     const [bookingsResults] = await pool.execute(bookingsQuery, [sailId]);
     return bookingsResults;
 }
+async function updateCustomer(customerId, customerData, connection) {
+    const sql = `
+        UPDATE Customer 
+        SET name = ?, wants_whatsapp = ?, email = ?, notes = ? 
+        WHERE id = ?
+    `;
+    const values = [
+        customerData.name,
+        customerData.wants_whatsapp,
+        customerData.email,
+        customerData.notes,
+        customerId
+    ];
+    return await query(sql, values, connection);
+}
+
 // --- ייצוא כל הפונקציות ---
 
 module.exports = {
@@ -553,4 +656,7 @@ module.exports = {
     createNewSail,
     findBoatActivityId,
     createOrderInTransaction,
+    checkAvailabilityAndLock,
+    updateCustomer,
+
 };
