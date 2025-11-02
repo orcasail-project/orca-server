@@ -75,9 +75,7 @@ async function getNextSailsForToday() {
   }
   return response;
 }
-
-
-async function updateSailStatus(sailId, newStatus, userId, req) {
+async function updateSailStatus(sailId, newStatus, userId) {
   const currentTime = moment().format('HH:mm:ss');
   const sailCheck = await query(sailCheckQuery, [sailId]);
   if (sailCheck.length === 0) throw new Error('Sail not found');
@@ -104,12 +102,7 @@ async function updateSailStatus(sailId, newStatus, userId, req) {
 
   const upcomingSails = await getUpcomingSailsForBoat(sail.boat_id);
   const nextSail = upcomingSails.find(s => s.sail_id !== updatedSail.sail_id);
-
-  if (req.io) {
-    console.log('[Socket.io] Broadcasting "sails_updated" event after status update.');
-    req.io.emit('sails_updated');
-  }
-  // broadcastSailsUpdate(); // <--- הוסף את השורה הזו כאן
+  broadcastSailsUpdate();
 
   return {
     success: true,
@@ -140,9 +133,8 @@ async function getLatePhoneReservations() {
   }
   return lateSailsWithBookings;
 }
-
-
-async function handleLatePhoneSailsAutomatically(req) {
+async function handleLatePhoneSailsAutomatically(io) {
+  
   let changesWereMade = false;
   const lateSailsToProcess = await query(getLatePhoneSailsQuery);
   const handledSailIds = [];
@@ -180,19 +172,13 @@ async function handleLatePhoneSailsAutomatically(req) {
       console.error("[LateSailHandler] SQL Error:", error.message);
     }
   }
-  // if (changesWereMade && io) {
-  //   console.log('[Socket.io] Broadcasting "sails_updated" event after handling late sails.');
-  //   io.emit('sails_updated');
-  // }
-
-  if (changesWereMade && req.io) {
-    console.log('[Socket.io] Broadcasting "sails_updated" event after handling late sails.');
-    req.io.emit('sails_updated');
+  if (changesWereMade) {
+    broadcastSailsUpdate(); // במקום io.emit() ישירות
   }
   return handledSailIds;
 }
 
-async function revertLateSail(originalLateSailId, userId, req) {
+async function revertLateSail(originalLateSailId, userId) {
   const originalSailResults = await query(getSailByIdQuery, [originalLateSailId]);
   if (originalSailResults.length === 0) {
     throw new Error('Original late sail not found');
@@ -217,26 +203,23 @@ async function revertLateSail(originalLateSailId, userId, req) {
 
   // עדכון הסטטוס של השיוט המקורי חזרה ל'pending' וניקוי השדה transferred_to_sail_id
   await query(updateSailQuery, ['pending', null, originalLateSailId]);
-  // broadcastSailsUpdate(); // <--- הוסף את השורה הזו כאן
-  if (req.io) {
-    console.log('[Socket.io] Broadcasting "sails_updated" event after reverting late sail.');
-    req.io.emit('sails_updated');
-  }
+  broadcastSailsUpdate(); // <--- הוסף את השורה הזו כאן
+
   return { success: true, message: `Sail ${originalLateSailId} reverted successfully` };
 }
-// function broadcastSailsUpdate() {
-//   try {
-//     const { io } = require('../../../server'); // נטען את io כאן
-//     if (io) {
-//       console.log('[Socket.io] Broadcasting "sails_updated" event to all clients.');
-//       io.emit('sails_updated');
-//     } else {
-//       console.error('[Socket.io] Error: io object is not available.');
-//     }
-//   } catch (err) {
-//     console.error('[Socket.io] Failed to broadcast update:', err);
-//   }
-// }
+function broadcastSailsUpdate() {
+  try {
+    const { io } = require('../../../server'); // נטען את io כאן
+    if (io) {
+      console.log('[Socket.io] Broadcasting "sails_updated" event to all clients.');
+      io.emit('sails_updated');
+    } else {
+      console.error('[Socket.io] Error: io object is not available.');
+    }
+  } catch (err) {
+    console.error('[Socket.io] Failed to broadcast update:', err);
+  }
+}
 
 module.exports = {
   getCurrentSails,
