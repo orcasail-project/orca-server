@@ -46,6 +46,8 @@ CREATE TABLE Sail (
     is_private_group BOOLEAN NOT NULL DEFAULT FALSE,
     boat_activity_id INT,
     requires_orca_escort BOOLEAN DEFAULT FALSE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    transferred_to_sail_id INT NULL, 
     notes TEXT,
     FOREIGN KEY (population_type_id) REFERENCES PopulationType(id),
     FOREIGN KEY (boat_activity_id) REFERENCES BoatActivity(id)

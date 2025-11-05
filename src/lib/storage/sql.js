@@ -21,6 +21,8 @@ async function initializeDatabasePool() {
     }
 }
 
+
+
 /**
  * פונקציה גנרית להרצת שאילתות SQL, עם תמיכה בטרנזקציות.
  */
@@ -483,26 +485,85 @@ async function createUser(userData) {
     };
 }
 
+//   SELECT 
+//           b.id AS boat_id, s.id AS sail_id, TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
+//           s.actual_start_time, s.population_type_id, pt.name AS population_type_name, s.notes AS sail_notes,
+//           s.requires_orca_escort, s.is_private_group, bk.id AS booking_id, c.id AS customer_id, c.name AS customer_name,
+//           c.phone_number AS customer_phone_number, bk.num_people_sail, bk.num_people_activity, bk.is_phone_booking
+//         FROM Boat b
+//         INNER JOIN BoatActivity ba ON ba.boat_id = b.id
+//         INNER JOIN Sail s ON s.boat_activity_id = ba.id
+//         LEFT JOIN Booking bk ON bk.sail_id = s.id
+//         LEFT JOIN Customer c ON c.id = bk.customer_id
+//         LEFT JOIN PopulationType pt ON pt.id = s.population_type_id
+//         WHERE 
+//           TIMESTAMP(s.date, s.planned_start_time) >= ?
+//           AND TIMESTAMP(s.date, s.planned_start_time) < ?
+//          ORDER BY b.id, planned_start_time, bk.id;
+async function getBoatsForDashboard() {
+    const sql = 'SELECT id, name, is_active, gate_number FROM Boat ORDER BY id';
+    return await query(sql);
+}
+async function getCustomerPhoneById(customerId) {
+    const sql = 'SELECT phone_number FROM Customer WHERE id = ?';
+    const result = await query(sql, [customerId]);
+    if (result.length === 0) {
+        return null; // או לזרוק שגיאה
+    }
+    return result[0].phone_number;
+}
+
 async function getUpcomingSailsData(startTime, endTime) {
     const sql = `
-        SELECT 
-          b.id AS boat_id, s.id AS sail_id, TIMESTAMP(s.date, s.planned_start_time) AS planned_start_time,
-          s.actual_start_time, s.population_type_id, pt.name AS population_type_name, s.notes AS sail_notes,
-          s.requires_orca_escort, s.is_private_group, bk.id AS booking_id, c.id AS customer_id, c.name AS customer_name,
-          c.phone_number AS customer_phone_number, bk.num_people_sail, bk.num_people_activity, bk.is_phone_booking
-        FROM Boat b
-        INNER JOIN BoatActivity ba ON ba.boat_id = b.id
-        INNER JOIN Sail s ON s.boat_activity_id = ba.id
-        LEFT JOIN Booking bk ON bk.sail_id = s.id
-        LEFT JOIN Customer c ON c.id = bk.customer_id
-        LEFT JOIN PopulationType pt ON pt.id = s.population_type_id
-        WHERE 
-          TIMESTAMP(s.date, s.planned_start_time) >= ?
-          AND TIMESTAMP(s.date, s.planned_start_time) < ?
-         ORDER BY b.id, planned_start_time, bk.id;
+SELECT 
+  b.id AS boat_id, 
+  s.id AS sail_id, 
+  CONCAT(s.date, 'T', s.planned_start_time, '+02:00') AS planned_start_time,
+  s.actual_start_time, 
+  s.population_type_id, 
+  pt.name AS population_type_name, 
+  s.notes AS sail_notes,
+  s.requires_orca_escort, 
+  s.is_private_group, 
+  
+  bk.id AS booking_id, 
+  bk.notes AS booking_notes, 
+  
+  c.id AS customer_id, 
+  c.name AS customer_name,
+ 
+  
+  bk.num_people_sail, 
+  bk.num_people_activity, 
+  
+  a.name AS activity_name, 
+  
+  bk.is_phone_booking
+  FROM Sail s
+INNER JOIN BoatActivity ba ON s.boat_activity_id = ba.id
+INNER JOIN Boat b ON ba.boat_id = b.id
+INNER JOIN Activity a ON ba.activity_id = a.id
+LEFT JOIN PopulationType pt ON s.population_type_id = pt.id
+LEFT JOIN Booking bk ON bk.sail_id = s.id
+LEFT JOIN Customer c ON c.id = bk.customer_id
+WHERE 
+  b.is_active = TRUE
+  
+  AND DATE_SUB(TIMESTAMP(s.date, s.planned_start_time), INTERVAL 2 HOUR) >= ?
+  AND DATE_SUB(TIMESTAMP(s.date, s.planned_start_time), INTERVAL 2 HOUR) < ?
+  
+  
+
+
+ORDER BY b.id, planned_start_time, bk.id;
     `;
+
+
     return await query(sql, [startTime, endTime]);
+    
 }
+// AND TIMESTAMP(s.date, s.planned_start_time) >= ?
+//     AND TIMESTAMP(s.date, s.planned_start_time) < ?
 
 async function findSailsWithOccupancy(searchParams) {
     const { date, time, population_type_id, activity_id } = searchParams;
@@ -617,10 +678,17 @@ async function updateCustomer(customerId, customerData, connection) {
     return await query(sql, values, connection);
 }
 
+
+// ====== פונקציית בדיקה זמנית ======
+async function getRawSailById(sailId) {
+    const sql = 'SELECT * FROM Sail WHERE id = ?';
+    const results = await query(sql, [sailId]);
+    return results.length > 0 ? results[0] : null;
+}
 // --- ייצוא כל הפונקציות ---
 
 module.exports = {
-
+    getRawSailById,
     // פונקציות בסיס
     initializeDatabasePool,
     query,
@@ -643,6 +711,8 @@ module.exports = {
 
     // הפלגות והזמנות
     getUpcomingSailsData,
+    getBoatsForDashboard,
+    getCustomerPhoneById,
     findSailsWithOccupancy,
     getSailById,            // <<< חדש
     getBookingsBySailId,    // <<< חדש

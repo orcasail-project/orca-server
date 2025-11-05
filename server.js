@@ -46,9 +46,9 @@ const { Server } = require("socket.io");
 const { initializeDatabasePool } = require('./src/lib/storage/sql');
 
 const createMainRouter = require('./src/lib/router/router');
-const createDashboardRouter = require('./src/lib/router/dashboardRouter');
-const createSailsRouter = require('./src/lib/router/sails.js');
-const createSkipperRouter = require('./src/lib/router/skipperRouter');
+// const createDashboardRouter = require('./src/lib/router/dashboardRouter');
+// const createSailsRouter = require('./src/lib/router/sails.js');
+// const createSkipperRouter = require('./src/lib/router/skipperRouter');
 
 const app = express();
 const server = http.createServer(app);
