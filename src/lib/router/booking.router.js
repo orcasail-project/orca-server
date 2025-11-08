@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const authenticateToken = require('../middleware/auth'); 
 
+const { authorize } = require('../middleware/authorize'); 
 const bookingController = require('../controllers/booking.controller.js');
 
 module.exports = function (io) {
@@ -8,13 +10,25 @@ module.exports = function (io) {
     res.send('booking API Router');
   });
 
-  router.post('/check-availability', bookingController.checkAvailability);
+  router.post('/check-availability',
+    authenticateToken,      
+    authorize([1, 3]),
+    bookingController.checkAvailability);
 
-  router.get('/checkExistingCustomer', bookingController.checkExistingCustomer);
+  router.get('/checkExistingCustomer',
+    authenticateToken,      
+    authorize([1, 3]),
+    bookingController.checkExistingCustomer);
 
-  router.post('/addCustomer', bookingController.addNewCustomer);
+  router.post('/addCustomer',
+    authenticateToken,      
+    authorize([1, 3]),
+    bookingController.addNewCustomer);
 
-  router.post('/addOrder', bookingController.addNewOrder);
+  router.post('/addOrder',
+    authenticateToken,      
+    authorize([1, 3]),
+    bookingController.addNewOrder);
 
   return router;
 };

@@ -5,7 +5,7 @@ const DetailsController = require('../controllers/sailDetailsController');
 
 
 module.exports = function (io) {
-    // שליפת כל המטאדאטה (כולל הכל)
+    
     router.get('/:id', DetailsController.getSailById);
 
     return router;

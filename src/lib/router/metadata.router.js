@@ -4,7 +4,7 @@ const metadataController = require('../controllers/metadata.controller.js');
 
  
 module.exports = function (io) {
-    // שליפת כל המטאדאטה (כולל הכל)
+  
     router.get('/', metadataController.getMetadata);
 
     return router;
