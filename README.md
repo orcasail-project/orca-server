@@ -169,15 +169,3 @@ The Dashboard logic (`dashboardController.js`) follows a highly optimized flow:
 | `src/lib/storage/sql.js` | DAL (Data Access Layer) & SQL queries. |
 
 ---
-
-## 📄 License
-
-[Add your license here]
-
-## 🤝 Contributing
-
-[Add contribution guidelines here]
-
-## 📧 Contact
-
-[Add contact information here]
